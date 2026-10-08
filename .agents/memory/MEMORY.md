@@ -1,0 +1,1 @@
+- [HRMO prototype data boundaries](hrmo-prototype-data-boundaries.md) — Keep import demos explicit about local CSV handling, synthetic XLSX data, and no backend persistence.
