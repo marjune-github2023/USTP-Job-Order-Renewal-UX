@@ -1,0 +1,35 @@
+2.1	Core Functions (90%)
+2.1.1	90% Internet uptime (600MBPS+) Sustain Existing Internet
+2.1.1.a	Subscription, Monitoring, Maintenance of Main line Internet Connection for the Campus (NEP).
+2.1.1.b	Subscription, Monitoring, Maintenance of Secondary line Internet Connection for the Campus (STF).
+2.1.1.c	Subscription, Monitoring, Maintenance of Satellite Internet Connection for the Campus 
+2.1.2	90% Processed ICT service request for repair and maintenance.
+2.1.2.a.	Preventive maintenance to all ICT equipment in the campus including installation and connectivity.
+2.1.2.b.	Purchase of ICT Supplies, Materials, Equipment and connectivity.
+2.1.2.c.	Upgrading of ICT Computers, Equipment and Connectivity.
+2.1.2.d.	Technical Support (Repair and Maintain) printers, computers and connectivity in the campus.
+2.1.3	ID Printing for Clientele Services
+2.1.3.a.	Provide/Printed Campus ID to students, faculty staff and admin officials.
+2.1.4	Acquired office supplies/equipment/furniture/materials.
+2.1.4.a.	Acquired office supplies/equipment/furniture/materials.
+2.1.5	90% of Personnel attended/participated in Learning and Development activities
+2.1.5.a.	Attended/participated in Learning and Development activities.
+2.1.5.b.	Attendance/Participation on Trainings/ Seminars/ Workshops.
+2.1.5.c.	Attendance/Participation on Administrative Meetings and Special Meeting.
+2.1.6	Equipment and Materials for Campus promotion and advertising
+2.1.6.a.	Purchase of Equipment/Materials for Campus promotion and advertising.
+2.1.7	Annual Report submitted to appropriate PME Office on time
+2.1.7.a.	Submit Annual Report submitted to appropriate PME Office on time.
+2.1.8	Semi-Annual Report submitted to appropriate PME Office on time
+2.1.8.a.	Submit Semi-Annual Report submitted to appropriate PME Office on time.
+2.1.9	100% Compliance with Internal Quality Findings (if any)
+2.1.9.a.	Comply with internal quality audit findings (if any).
+2.1.10	80% of clients rated the services of the office at least above average (3.41-4.20) 
+2.1.10.a.	Provide rating forms to clients.
+2.2	Mandatory Support Functions (10%).
+2.2.1.	100% documents needed for accreditation given to task force on time.
+2.2.1a.	Submit documents to accreditation Office on time (if any).
+2.2.2.	100% attendance to General Assembly
+2.2.2a.	Attendance to General Assembly.
+2.2.3.	100% DTRS submitted on time
+2.2.3a.	Submit DTRS on time.

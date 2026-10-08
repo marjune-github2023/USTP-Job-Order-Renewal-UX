@@ -1,48 +1,107 @@
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
-  CheckCircle2,
-  Circle,
   CircleHelp,
   FileCheck2,
-  LockKeyhole,
+  ListChecks,
+  Plus,
   Save,
   ShieldCheck,
-  X,
+  Trash2,
 } from "lucide-react";
 
-type ItemState = "answered" | "na" | "empty";
+type TorActivity = { id: string; text: string };
+type TorFunction = { id: string; text: string; activities: TorActivity[] };
+type TorSection = { id: string; title: string; weight: string; functions: TorFunction[] };
 
-const TOTAL_ITEMS = 30;
-
-function getInitialResponses(): Record<number, string> {
+function createFunction(id: string, text: string, activityTexts: string[] = []): TorFunction {
   return {
-    1: "Coordinate assigned work with the relevant campus office.",
-    2: "Prepare routine records and supporting materials as requested.",
-    3: "Provide assistance during scheduled campus activities.",
-    4: "N/A",
-    5: "Maintain orderly files for assigned tasks.",
-    6: "N/A",
-    7: "Support day-to-day operations within the assigned unit.",
-    8: "N/A",
+    id,
+    text,
+    activities: activityTexts.map((activity, index) => ({
+      id: `${id}-activity-${index + 1}`,
+      text: activity,
+    })),
   };
 }
 
-function getItemState(value: string | undefined): ItemState {
-  if (!value?.trim()) return "empty";
-  return value.trim().toLowerCase() === "n/a" ? "na" : "answered";
+const INITIAL_SECTIONS: TorSection[] = [
+  {
+    id: "core-functions",
+    title: "Core Functions",
+    weight: "90",
+    functions: [
+      createFunction("internet-uptime", "90% Internet uptime (600MBPS+) Sustain Existing Internet", [
+        "Subscription, Monitoring, Maintenance of Main line Internet Connection for the Campus (NEP).",
+        "Subscription, Monitoring, Maintenance of Secondary line Internet Connection for the Campus (STF).",
+        "Subscription, Monitoring, Maintenance of Satellite Internet Connection for the Campus.",
+      ]),
+      createFunction("ict-service-requests", "90% Processed ICT service request for repair and maintenance.", [
+        "Preventive maintenance to all ICT equipment in the campus including installation and connectivity.",
+        "Purchase of ICT Supplies, Materials, Equipment and connectivity.",
+        "Upgrading of ICT Computers, Equipment and Connectivity.",
+        "Technical Support (Repair and Maintain) printers, computers and connectivity in the campus.",
+      ]),
+      createFunction("id-printing", "ID Printing for Clientele Services", [
+        "Provide/Printed Campus ID to students, faculty staff and admin officials.",
+      ]),
+      createFunction("office-supplies", "Acquired office supplies/equipment/furniture/materials.", [
+        "Acquired office supplies/equipment/furniture/materials.",
+      ]),
+      createFunction("learning-development", "90% of Personnel attended/participated in Learning and Development activities", [
+        "Attended/participated in Learning and Development activities.",
+        "Attendance/Participation on Trainings/Seminars/Workshops.",
+        "Attendance/Participation on Administrative Meetings and Special Meeting.",
+      ]),
+      createFunction("campus-promotion", "Equipment and Materials for Campus promotion and advertising", [
+        "Purchase of Equipment/Materials for Campus promotion and advertising.",
+      ]),
+      createFunction("annual-report", "Annual Report submitted to appropriate PME Office on time", [
+        "Submit Annual Report to the appropriate PME Office on time.",
+      ]),
+      createFunction("semi-annual-report", "Semi-Annual Report submitted to appropriate PME Office on time", [
+        "Submit Semi-Annual Report to the appropriate PME Office on time.",
+      ]),
+      createFunction("quality-findings", "100% Compliance with Internal Quality Findings (if any)", [
+        "Comply with internal quality audit findings (if any).",
+      ]),
+      createFunction("client-ratings", "80% of clients rated the services of the office at least above average (3.41-4.20)", [
+        "Provide rating forms to clients.",
+      ]),
+    ],
+  },
+  {
+    id: "mandatory-support",
+    title: "Mandatory Support Functions",
+    weight: "10",
+    functions: [
+      createFunction("accreditation-documents", "100% documents needed for accreditation given to task force on time.", [
+        "Submit documents to the Accreditation Office on time (if any).",
+      ]),
+      createFunction("general-assembly", "100% attendance to General Assembly", [
+        "Attendance to General Assembly.",
+      ]),
+      createFunction("dtrs-submission", "100% DTRS submitted on time", [
+        "Submit DTRS on time.",
+      ]),
+    ],
+  },
+];
+
+function makeId(prefix: string) {
+  return `${prefix}-${crypto.randomUUID()}`;
 }
 
-function StatusMark({ state }: { state: ItemState }) {
-  if (state === "answered") {
-    return <CheckCircle2 aria-hidden="true" className="tor-status-icon tor-status-answered" />;
+function alphaLabel(index: number) {
+  let value = index + 1;
+  let label = "";
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(97 + (value % 26)) + label;
+    value = Math.floor(value / 26);
   }
-  if (state === "na") {
-    return <span aria-label="Marked not applicable" className="tor-status-na">N/A</span>;
-  }
-  return <Circle aria-hidden="true" className="tor-status-icon tor-status-empty" />;
+  return label;
 }
 
 function StepBadge({ number, label, status }: { number: number; label: string; status: "complete" | "current" | "upcoming" }) {
@@ -57,49 +116,142 @@ function StepBadge({ number, label, status }: { number: number; label: string; s
 }
 
 export function PersonnelTOR() {
-  const [responses, setResponses] = useState<Record<number, string>>(getInitialResponses);
-  const [currentItem, setCurrentItem] = useState(9);
-  const [showHelp, setShowHelp] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [sections, setSections] = useState<TorSection[]>(INITIAL_SECTIONS);
+  const [numberingPrefix, setNumberingPrefix] = useState("2");
   const [notice, setNotice] = useState("");
+  const numberingBase = Math.max(1, Math.floor(Number(numberingPrefix) || 1));
 
-  const currentResponse = responses[currentItem] ?? "";
-  const itemStates = useMemo(
-    () => Array.from({ length: TOTAL_ITEMS }, (_, index) => getItemState(responses[index + 1])),
-    [responses],
-  );
-  const answeredCount = itemStates.filter((state) => state !== "empty").length;
-  const completedPercent = Math.round((answeredCount / TOTAL_ITEMS) * 100);
+  const totals = useMemo(() => {
+    const functions = sections.reduce((sum, section) => sum + section.functions.length, 0);
+    const activities = sections.reduce(
+      (sum, section) => sum + section.functions.reduce((inner, item) => inner + item.activities.length, 0),
+      0,
+    );
+    const descriptions = sections.flatMap((section) =>
+      section.functions.flatMap((item) => [item.text, ...item.activities.map((activity) => activity.text)]),
+    );
+    const completed = descriptions.filter((text) => text.trim()).length;
+    return {
+      functions,
+      activities,
+      descriptions: descriptions.length,
+      completed,
+      numberedLines: sections.length + functions + activities,
+      percent: descriptions.length ? Math.round((completed / descriptions.length) * 100) : 0,
+    };
+  }, [sections]);
 
-  const goToItem = (item: number) => {
-    setCurrentItem(Math.min(TOTAL_ITEMS, Math.max(1, item)));
-    setShowError(false);
-    setNotice("");
+  const sectionNumber = (sectionIndex: number) => `${numberingBase}.${sectionIndex + 1}`;
+  const functionNumber = (sectionIndex: number, functionIndex: number) =>
+    `${sectionNumber(sectionIndex)}.${functionIndex + 1}`;
+  const activityNumber = (sectionIndex: number, functionIndex: number, activityIndex: number) =>
+    `${functionNumber(sectionIndex, functionIndex)}.${alphaLabel(activityIndex)}`;
+  const sectionHeading = (section: TorSection) =>
+    `${section.title.trim() || "Untitled section"}${section.weight.trim() ? ` (${section.weight.trim()}%)` : ""}`;
+
+  const updateSection = (sectionId: string, changes: Partial<TorSection>) => {
+    setSections((previous) => previous.map((section) => section.id === sectionId ? { ...section, ...changes } : section));
+    setNotice("Numbered preview updated · not stored");
   };
 
-  const updateResponse = (value: string) => {
-    setResponses((previous) => ({ ...previous, [currentItem]: value }));
-    setShowError(false);
-    setNotice("Draft saved · illustrative");
+  const updateFunction = (sectionId: string, functionId: string, text: string) => {
+    setSections((previous) => previous.map((section) => section.id !== sectionId ? section : {
+      ...section,
+      functions: section.functions.map((item) => item.id === functionId ? { ...item, text } : item),
+    }));
+    setNotice("Numbered preview updated · not stored");
   };
 
-  const markNotApplicable = () => {
-    updateResponse("N/A");
+  const updateActivity = (sectionId: string, functionId: string, activityId: string, text: string) => {
+    setSections((previous) => previous.map((section) => section.id !== sectionId ? section : {
+      ...section,
+      functions: section.functions.map((item) => item.id !== functionId ? item : {
+        ...item,
+        activities: item.activities.map((activity) => activity.id === activityId ? { ...activity, text } : activity),
+      }),
+    }));
+    setNotice("Numbered preview updated · not stored");
   };
 
-  const handleNext = () => {
-    if (!currentResponse.trim()) {
-      setShowError(true);
-      setNotice("");
-      return;
-    }
-    setShowError(false);
-    setCurrentItem((item) => Math.min(TOTAL_ITEMS, item + 1));
-    setNotice("");
+  const addSection = () => {
+    const section: TorSection = {
+      id: makeId("section"),
+      title: "New section",
+      weight: "",
+      functions: [createFunction(makeId("function"), "", [])],
+    };
+    setSections((previous) => [...previous, section]);
+    setNotice("New section added · numbering updated");
+  };
+
+  const addFunction = (sectionId: string) => {
+    const item = createFunction(makeId("function"), "", []);
+    setSections((previous) => previous.map((section) => section.id !== sectionId ? section : {
+      ...section,
+      functions: [...section.functions, item],
+    }));
+    setNotice("New function added · numbering updated");
+  };
+
+  const addActivity = (sectionId: string, functionId: string) => {
+    const activity = { id: makeId("activity"), text: "" };
+    setSections((previous) => previous.map((section) => section.id !== sectionId ? section : {
+      ...section,
+      functions: section.functions.map((item) => item.id !== functionId ? item : {
+        ...item,
+        activities: [...item.activities, activity],
+      }),
+    }));
+    setNotice("New activity added · numbering updated");
+  };
+
+  const removeSection = (sectionId: string) => {
+    const index = sections.findIndex((section) => section.id === sectionId);
+    const section = sections[index];
+    if (!section) return;
+    const nestedCount = section.functions.reduce((sum, item) => sum + 1 + item.activities.length, 0);
+    if (!window.confirm(`Remove ${sectionNumber(index)} ${sectionHeading(section)} and its ${nestedCount} numbered entries? Remaining sections will be renumbered.`)) return;
+    setSections((previous) => previous.filter((item) => item.id !== sectionId));
+    setNotice("Section removed · remaining entries renumbered");
+  };
+
+  const removeFunction = (sectionId: string, functionId: string) => {
+    const sectionIndex = sections.findIndex((section) => section.id === sectionId);
+    const section = sections[sectionIndex];
+    const functionIndex = section?.functions.findIndex((item) => item.id === functionId) ?? -1;
+    const item = section?.functions[functionIndex];
+    if (!section || !item) return;
+    if (!window.confirm(`Remove ${functionNumber(sectionIndex, functionIndex)} and its ${item.activities.length} activities? Remaining entries will be renumbered.`)) return;
+    setSections((previous) => previous.map((current) => current.id !== sectionId ? current : {
+      ...current,
+      functions: current.functions.filter((functionItem) => functionItem.id !== functionId),
+    }));
+    setNotice("Function removed · remaining entries renumbered");
+  };
+
+  const removeActivity = (sectionId: string, functionId: string, activityId: string) => {
+    const sectionIndex = sections.findIndex((section) => section.id === sectionId);
+    const section = sections[sectionIndex];
+    const functionIndex = section?.functions.findIndex((item) => item.id === functionId) ?? -1;
+    const item = section?.functions[functionIndex];
+    const activityIndex = item?.activities.findIndex((activity) => activity.id === activityId) ?? -1;
+    if (!section || !item || activityIndex < 0) return;
+    if (!window.confirm(`Remove item ${activityNumber(sectionIndex, functionIndex, activityIndex)}? Later letter numbers will update.`)) return;
+    setSections((previous) => previous.map((current) => current.id !== sectionId ? current : {
+      ...current,
+      functions: current.functions.map((functionItem) => functionItem.id !== functionId ? functionItem : {
+        ...functionItem,
+        activities: functionItem.activities.filter((activity) => activity.id !== activityId),
+      }),
+    }));
+    setNotice("Activity removed · remaining entries renumbered");
   };
 
   const handleContinue = () => {
-    setNotice("This is a visual prototype. Your application has not been submitted.");
+    const incomplete = totals.descriptions - totals.completed;
+    setNotice(incomplete
+      ? `Add a description to ${incomplete} empty ${incomplete === 1 ? "entry" : "entries"} or remove those rows before continuing.`
+      : "All TOR descriptions are included in the numbered preview. This prototype does not submit your application.");
   };
 
   return (
@@ -165,6 +317,7 @@ export function PersonnelTOR() {
           padding: 8px 11px; border: 1px solid #c9d2d2; background: #f9f9f4; color: #36576a;
           font-size: 11px; font-weight: 700; letter-spacing: .02em;
         }
+        .tor-status-pill { max-width: 370px; white-space: normal; line-height: 1.35; }
         .tor-status-pill svg { width: 15px; height: 15px; color: #64826f; }
         .tor-progress-shell { margin: 0 0 22px; padding: 17px 20px 14px; background: var(--tor-white); border: 1px solid var(--tor-line); }
         .tor-progress-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 13px; }
@@ -192,95 +345,107 @@ export function PersonnelTOR() {
         .tor-step-current { color: var(--tor-navy); font-weight: 750; }
         .tor-step-current .tor-step-number { border: 2px solid var(--tor-navy); color: var(--tor-navy); }
         .tor-step-upcoming .tor-step-label { color: #8a969b; }
-        .tor-content-grid { display: grid; grid-template-columns: minmax(235px, 290px) minmax(0, 1fr); gap: 22px; align-items: start; }
-        .tor-aside { display: grid; gap: 14px; }
-        .tor-nav-panel, .tor-note-panel, .tor-editor { background: var(--tor-white); border: 1px solid var(--tor-line); }
-        .tor-nav-head { padding: 17px 18px 13px; border-bottom: 1px solid var(--tor-soft-line); }
-        .tor-nav-title { margin: 0; color: var(--tor-navy-deep); font-size: 14px; font-weight: 750; }
-        .tor-nav-subtitle { margin: 3px 0 0; color: #758188; font-size: 11px; }
-        .tor-nav-progress { height: 3px; margin-top: 13px; background: #e6e9e6; }
-        .tor-nav-progress span { display: block; height: 100%; background: var(--tor-gold); transition: width .2s ease; }
-        .tor-item-list {
-          display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px;
-          max-height: 430px; overflow-y: auto; padding: 12px;
+        .tor-content-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, .82fr); gap: 20px; align-items: start; }
+        .tor-workspace, .tor-output-panel { min-width: 0; background: var(--tor-white); border: 1px solid var(--tor-line); }
+        .tor-workspace-header, .tor-output-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 17px 19px; border-bottom: 1px solid var(--tor-soft-line); }
+        .tor-workspace-title, .tor-output-title { margin: 0; color: var(--tor-navy-deep); font-size: 15px; font-weight: 750; }
+        .tor-workspace-subtitle, .tor-output-subtitle { margin: 3px 0 0; color: #758188; font-size: 11px; }
+        .tor-config-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 14px 19px; background: #f8f8f3; border-bottom: 1px solid var(--tor-soft-line); }
+        .tor-numbering-setting { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .tor-numbering-setting label { color: #425762; font-size: 11px; font-weight: 700; }
+        .tor-numbering-setting input { width: 66px; min-height: 35px; padding: 5px 8px; border: 1px solid #bdc8ca; color: var(--tor-navy); background: white; font-weight: 700; }
+        .tor-numbering-example { color: #758188; font-size: 10px; }
+        .tor-counts { display: flex; align-items: center; gap: 16px; color: #65747b; font-size: 11px; }
+        .tor-counts b { color: var(--tor-navy); font-variant-numeric: tabular-nums; }
+        .tor-sections { display: grid; gap: 14px; padding: 16px; }
+        .tor-section-card { border: 1px solid #d9dfdb; background: #fffefa; }
+        .tor-section-header { display: grid; grid-template-columns: 40px minmax(0, 1fr) 84px 36px; align-items: end; gap: 12px; padding: 15px; background: #f6f6f0; border-bottom: 1px solid #e3e6df; }
+        .tor-section-number, .tor-line-number {
+          display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+          min-width: 38px; min-height: 32px; padding: 0 6px; color: var(--tor-navy);
+          background: #eaf0ef; border: 1px solid #d4dfdb; font-size: 11px; font-weight: 800;
+          font-variant-numeric: tabular-nums; white-space: nowrap;
         }
-        .tor-item-button {
-          display: flex; align-items: center; justify-content: space-between; gap: 5px;
-          min-height: 36px; padding: 5px 7px; border: 1px solid transparent; background: transparent;
-          color: #52636d; text-align: left; transition: background .15s ease, border-color .15s ease, color .15s ease;
+        .tor-field-label { display: block; min-width: 0; color: #52646d; font-size: 10px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+        .tor-field-input, .tor-field-textarea {
+          display: block; width: 100%; margin-top: 5px; border: 1px solid #bdc8ca; border-radius: 0;
+          color: #233e50; background: #fffefa; font: inherit; font-size: 12px; line-height: 1.5;
         }
-        .tor-item-button:hover { background: #f3f5f1; border-color: #e3e6e0; }
-        .tor-item-button[aria-current="step"] { color: var(--tor-navy-deep); border-color: #aabac0; background: #eef2f1; font-weight: 750; }
-        .tor-item-number { font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
-        .tor-status-icon { width: 14px; height: 14px; flex: 0 0 auto; }
-        .tor-status-answered { color: #59806d; }
-        .tor-status-empty { color: #aab4b7; }
-        .tor-status-na { color: #8b6b2e; font-size: 8px; font-weight: 800; letter-spacing: .02em; }
-        .tor-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 11px; padding: 0 14px 13px; color: #6f7b80; font-size: 10px; }
-        .tor-legend-item { display: flex; align-items: center; gap: 5px; }
-        .tor-legend .tor-status-icon { width: 12px; height: 12px; }
-        .tor-legend .tor-status-na { font-size: 8px; }
-        .tor-note-panel { padding: 15px 16px; background: #f8f6ef; border-color: #e0d9c7; }
-        .tor-note-title { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #564a32; font-size: 12px; font-weight: 750; }
-        .tor-note-title svg { width: 16px; height: 16px; color: #957331; }
-        .tor-note-panel p { margin: 0; color: #655f52; font-size: 12px; line-height: 1.5; }
-        .tor-editor { min-width: 0; }
-        .tor-editor-header {
-          display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
-          padding: 21px 25px 17px; border-bottom: 1px solid var(--tor-soft-line);
+        .tor-field-input { min-height: 38px; padding: 8px 10px; }
+        .tor-field-textarea { min-height: 58px; padding: 9px 10px; resize: vertical; }
+        .tor-field-input:focus, .tor-field-textarea:focus, .tor-numbering-setting input:focus { border-color: var(--tor-blue); outline: 2px solid #b6ccd0; outline-offset: 1px; }
+        .tor-weight-field input { text-align: center; font-variant-numeric: tabular-nums; }
+        .tor-icon-button {
+          display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0;
+          color: #718087; background: transparent; border: 1px solid transparent;
         }
-        .tor-item-kicker { color: #7c6a45; font-size: 10px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
-        .tor-item-heading { margin: 5px 0 0; color: var(--tor-navy-deep); font: 500 24px/1.2 Georgia, "Times New Roman", serif; letter-spacing: -.02em; }
-        .tor-item-counter { flex: 0 0 auto; padding: 6px 9px; color: #536977; background: #eff2ef; border: 1px solid #dce2dd; font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
-        .tor-editor-body { padding: 24px 25px 21px; }
-        .tor-prompt-label { display: block; margin-bottom: 9px; color: #2a4456; font-size: 13px; font-weight: 750; }
-        .tor-prompt-hint { display: block; margin-top: 2px; color: #748187; font-size: 11px; font-weight: 400; }
-        .tor-response {
-          width: 100%; min-height: 184px; resize: vertical; padding: 15px 16px;
-          color: #233e50; background: #fffefa; border: 1px solid #abb9bd; border-radius: 0;
-          font-size: 14px; line-height: 1.65; transition: border-color .15s ease, box-shadow .15s ease;
+        .tor-icon-button:hover { color: #963f35; background: #faf0ed; border-color: #ead4ce; }
+        .tor-icon-button svg { width: 15px; height: 15px; }
+        .tor-functions { display: grid; gap: 10px; padding: 13px; }
+        .tor-function-card { padding: 12px; border: 1px solid #e0e5df; background: #fff; }
+        .tor-function-row { display: grid; grid-template-columns: max-content minmax(0, 1fr) 36px; align-items: start; gap: 10px; }
+        .tor-function-row .tor-line-number { margin-top: 20px; }
+        .tor-nested-activities { display: grid; gap: 7px; margin: 11px 0 0 17px; padding-left: 15px; border-left: 2px solid #e6e8df; }
+        .tor-activity-row { display: grid; grid-template-columns: max-content minmax(0, 1fr) 36px; align-items: center; gap: 8px; }
+        .tor-activity-number { color: #8a6b31; font-size: 10px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .tor-activity-row .tor-field-input, .tor-activity-row .tor-field-textarea { margin-top: 0; min-height: 42px; }
+        .tor-activity-row .tor-activity-input { padding: 6px 8px; resize: vertical; }
+        .tor-activity-row .tor-icon-button { width: 36px; height: 36px; }
+        .tor-add-inline, .tor-add-section {
+          display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 37px;
+          padding: 0 11px; color: #31556d; background: #fffefa; border: 1px solid #bdc8ca;
+          font-size: 11px; font-weight: 700; transition: background .15s ease, border-color .15s ease;
         }
-        .tor-response::placeholder { color: #9aa5a6; }
-        .tor-response:focus { border-color: var(--tor-blue); box-shadow: 0 0 0 1px var(--tor-blue); outline: none; }
-        .tor-response[aria-invalid="true"] { border-color: #a6473b; }
-        .tor-field-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 9px; }
-        .tor-helper-text { display: flex; align-items: center; gap: 6px; color: #728087; font-size: 11px; }
-        .tor-helper-text svg { width: 13px; height: 13px; }
-        .tor-char-count { color: #818c90; font-size: 10px; font-variant-numeric: tabular-nums; }
-        .tor-error { display: flex; align-items: center; gap: 7px; margin-top: 9px; color: #9e3e35; font-size: 12px; font-weight: 650; }
-        .tor-error svg { width: 15px; height: 15px; }
-        .tor-editor-controls { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 23px; }
-        .tor-na-button, .tor-button {
-          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-          min-height: 42px; padding: 0 14px; border: 1px solid #bdc8ca; border-radius: 0;
-          background: transparent; color: #385365; font-size: 12px; font-weight: 700;
-          transition: background .15s ease, border-color .15s ease, transform .15s ease;
+        .tor-add-inline { justify-self: start; margin: 3px 0 0; min-height: 37px; }
+        .tor-add-inline:hover, .tor-add-section:hover { background: #f0f4f1; border-color: #859ba1; }
+        .tor-add-inline svg, .tor-add-section svg { width: 14px; height: 14px; }
+        .tor-add-function { margin: 1px 0 0; }
+        .tor-button {
+          display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px;
+          padding: 0 14px; border: 1px solid #bdc8ca; border-radius: 0; background: transparent;
+          color: #385365; font-size: 12px; font-weight: 700; transition: background .15s ease, border-color .15s ease;
         }
-        .tor-na-button:hover, .tor-button-secondary:hover { background: #f1f3ef; border-color: #8399a2; }
-        .tor-na-button svg, .tor-button svg { width: 15px; height: 15px; }
-        .tor-advance { display: flex; gap: 8px; }
+        .tor-button svg { width: 15px; height: 15px; }
         .tor-button-secondary { background: var(--tor-white); }
+        .tor-button-secondary:hover { background: #f1f3ef; border-color: #8399a2; }
         .tor-button-primary { border-color: var(--tor-navy); background: var(--tor-navy); color: white; }
         .tor-button-primary:hover { background: #204a69; border-color: #204a69; }
         .tor-button:disabled { opacity: .45; cursor: not-allowed; }
-        .tor-message {
-          display: flex; align-items: flex-start; gap: 8px; margin: 0 25px 20px; padding: 10px 12px;
-          border-left: 3px solid #78917c; background: #f0f4ee; color: #3f624d; font-size: 11px;
-        }
+        .tor-output-panel { position: sticky; top: 14px; }
+        .tor-output-header { align-items: flex-start; }
+        .tor-output-heading { display: flex; align-items: center; gap: 9px; }
+        .tor-output-heading svg { width: 18px; height: 18px; color: var(--tor-gold); }
+        .tor-output-count { flex: 0 0 auto; padding: 5px 8px; border: 1px solid #dce2dd; background: #f2f4f0; color: #50646c; font-size: 10px; font-weight: 700; }
+        .tor-output-content { max-height: min(67vh, 700px); overflow: auto; padding: 18px 20px 22px; }
+        .tor-output-section + .tor-output-section { margin-top: 19px; padding-top: 16px; border-top: 1px solid #dfe4de; }
+        .tor-output-section h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; color: var(--tor-navy-deep); font-size: 13px; line-height: 1.45; }
+        .tor-output-section h3 code, .tor-output-function code, .tor-output-activity code { color: #8a6b31; font: 700 10px/1.4 "Source Sans 3", "Segoe UI", sans-serif; white-space: nowrap; }
+        .tor-output-function { display: grid; grid-template-columns: 47px minmax(0, 1fr); gap: 7px; margin-top: 10px; color: #314753; font-size: 11px; line-height: 1.5; }
+        .tor-output-function > code { color: var(--tor-navy); }
+        .tor-output-activity-list { display: grid; gap: 6px; margin: 7px 0 0 16px; padding-left: 11px; border-left: 1px solid #e1e5df; }
+        .tor-output-activity { display: grid; grid-template-columns: 53px minmax(0, 1fr); gap: 6px; color: #596a71; font-size: 10px; line-height: 1.5; }
+        .tor-output-activity code { color: #947639; font-size: 9px; }
+        .tor-output-empty { color: #9b8c69; font-style: italic; }
+        .tor-empty-state { padding: 22px; color: #6f7b80; font-size: 12px; text-align: center; }
+        .tor-message { display: flex; align-items: flex-start; gap: 8px; margin: 0 16px 16px; padding: 10px 12px; border-left: 3px solid #78917c; background: #f0f4ee; color: #3f624d; font-size: 11px; }
         .tor-message svg { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; }
-        .tor-bottom-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 18px; }
+        .tor-bottom-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 16px; padding: 14px 16px; border: 1px solid #e0d9c7; background: #f8f6ef; }
         .tor-privacy { display: flex; align-items: flex-start; gap: 9px; color: #69777d; font-size: 11px; line-height: 1.4; }
         .tor-privacy svg { width: 17px; height: 17px; flex: 0 0 auto; color: #56766c; }
         .tor-privacy strong { color: #425762; font-weight: 700; }
-        .tor-review-button { min-height: 40px; }
+        .tor-review-actions { display: flex; gap: 8px; }
         .tor-mobile-stepper { display: none; }
-        @media (max-width: 900px) {
-          .tor-shell { padding: 0 22px 32px; }
-          .tor-step { gap: 6px; padding-right: 9px; }
-          .tor-step-label { font-size: 10px; }
-          .tor-step:not(:last-child)::after { left: 34px; right: 5px; }
-          .tor-content-grid { grid-template-columns: minmax(220px, 255px) minmax(0, 1fr); gap: 16px; }
-          .tor-item-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        @media (max-width: 980px) {
+          .tor-shell { padding-right: 22px; padding-left: 22px; }
+          .tor-content-grid { grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); gap: 14px; }
+          .tor-workspace-header, .tor-output-header { padding: 14px; }
+          .tor-config-row { padding: 12px 14px; }
+          .tor-sections { padding: 12px; }
+        }
+        @media (max-width: 760px) {
+          .tor-content-grid { grid-template-columns: minmax(0, 1fr); }
+          .tor-output-panel { position: static; }
+          .tor-output-content { max-height: 440px; }
         }
         @media (max-width: 680px) {
           .tor-page { font-size: 14px; }
@@ -299,7 +464,7 @@ export function PersonnelTOR() {
           .tor-intro { display: block; padding-bottom: 16px; }
           .tor-title { font-size: 32px; }
           .tor-subtitle { font-size: 13px; }
-          .tor-status-pill { width: fit-content; margin: 13px 0 0; padding: 6px 9px; }
+          .tor-status-pill { width: fit-content; margin: 13px 0 0; padding: 6px 9px; white-space: normal; }
           .tor-progress-shell { padding: 14px 13px 12px; margin-bottom: 14px; }
           .tor-progress-heading { margin-bottom: 10px; }
           .tor-progress-heading strong { font-size: 12px; }
@@ -310,41 +475,39 @@ export function PersonnelTOR() {
           .tor-mobile-bar span { display: block; height: 100%; background: var(--tor-navy); }
           .tor-mobile-captions { display: flex; justify-content: space-between; margin-top: 7px; color: #708087; font-size: 10px; }
           .tor-mobile-captions strong { color: var(--tor-navy); }
-          .tor-content-grid { display: flex; flex-direction: column; gap: 12px; }
-          .tor-aside { display: contents; }
-          .tor-nav-panel { order: 0; width: 100%; }
-          .tor-note-panel { order: 2; width: 100%; }
-          .tor-editor { order: 1; width: 100%; }
-          .tor-nav-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 13px; }
-          .tor-nav-title { font-size: 12px; }
-          .tor-nav-subtitle { margin: 2px 0 0; font-size: 10px; }
-          .tor-nav-progress, .tor-legend { display: none; }
-          .tor-item-list { grid-template-columns: repeat(6, minmax(0, 1fr)); max-height: none; gap: 4px; padding: 8px; }
-          .tor-item-button { min-height: 36px; justify-content: center; padding: 4px 2px; }
-          .tor-item-button .tor-status-icon { display: none; }
-          .tor-item-button .tor-status-na { font-size: 7px; }
-          .tor-item-number { font-size: 11px; }
-          .tor-editor-header { padding: 16px 16px 13px; }
-          .tor-item-heading { font-size: 21px; }
-          .tor-item-counter { padding: 5px 7px; font-size: 10px; }
-          .tor-editor-body { padding: 18px 16px 16px; }
-          .tor-response { min-height: 164px; padding: 13px; font-size: 14px; }
-          .tor-field-footer { align-items: flex-start; }
-          .tor-editor-controls { align-items: stretch; flex-direction: column; gap: 11px; margin-top: 18px; }
-          .tor-na-button { align-self: flex-start; min-height: 44px; }
-          .tor-advance { display: grid; grid-template-columns: 1fr 1.3fr; }
-          .tor-button { min-height: 46px; }
-          .tor-message { margin: 0 16px 16px; }
-          .tor-bottom-row { align-items: stretch; flex-direction: column; gap: 13px; margin-top: 13px; }
-          .tor-review-button { width: 100%; }
-          .tor-note-panel { padding: 12px 14px; }
+          .tor-workspace-header { align-items: flex-start; flex-direction: column; }
+          .tor-workspace-header .tor-button { width: 100%; }
+          .tor-config-row { align-items: flex-start; flex-direction: column; gap: 8px; }
+          .tor-numbering-setting { align-items: flex-start; flex-wrap: wrap; }
+          .tor-numbering-setting label { align-self: center; }
+          .tor-counts { gap: 12px; flex-wrap: wrap; }
+          .tor-section-header { grid-template-columns: 36px minmax(0, 1fr) 36px; gap: 8px; padding: 11px; }
+          .tor-section-number { grid-column: 1; grid-row: 1 / span 2; align-self: center; min-width: 34px; }
+          .tor-section-title-field { grid-column: 2; }
+          .tor-weight-field { grid-column: 2; grid-row: 2; }
+          .tor-section-remove { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
+          .tor-functions { padding: 9px; }
+          .tor-function-card { padding: 9px; }
+          .tor-function-row { grid-template-columns: max-content minmax(0, 1fr) 36px; gap: 7px; }
+          .tor-function-row .tor-line-number { min-width: 40px; margin-top: 20px; font-size: 10px; }
+          .tor-nested-activities { margin-left: 10px; padding-left: 9px; }
+          .tor-activity-row { grid-template-columns: max-content minmax(0, 1fr) 36px; gap: 5px; }
+          .tor-activity-number { font-size: 10px; }
+          .tor-add-inline { padding: 0 8px; font-size: 10px; }
+          .tor-add-function { margin-left: 0; }
+          .tor-output-header { padding: 13px; }
+          .tor-output-content { max-height: 380px; padding: 14px; }
+          .tor-bottom-row { align-items: stretch; flex-direction: column; gap: 12px; margin-top: 12px; padding: 12px; }
+          .tor-review-actions { display: grid; grid-template-columns: 1fr; }
+          .tor-button { min-height: 45px; width: 100%; }
         }
         @media (max-width: 370px) {
           .tor-shell { padding-right: 12px; padding-left: 12px; }
           .tor-brand-campus { letter-spacing: .04em; }
           .tor-period-value { font-size: 10px; }
-          .tor-item-list { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-          .tor-advance { grid-template-columns: 1fr 1fr; }
+          .tor-function-row { grid-template-columns: max-content minmax(0, 1fr) 36px; gap: 5px; }
+          .tor-function-row .tor-line-number { min-width: 37px; padding: 0 3px; font-size: 9px; }
+          .tor-activity-row { grid-template-columns: max-content minmax(0, 1fr) 36px; }
         }
         @media (prefers-reduced-motion: reduce) {
           .tor-page *, .tor-page *::before, .tor-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
@@ -380,17 +543,17 @@ export function PersonnelTOR() {
         <section className="tor-intro" aria-labelledby="tor-main-title">
           <div>
             <div className="tor-overline">Existing Job Order personnel</div>
-            <h1 className="tor-title" id="tor-main-title">Terms of Reference</h1>
-            <p className="tor-subtitle">Review and enter each numbered item for your renewal. You can move between items at any time.</p>
+            <h1 className="tor-title" id="tor-main-title">Build your Terms of Reference</h1>
+            <p className="tor-subtitle">Add as many functions and activities as your role requires. They will be collected into one numbered TOR preview.</p>
           </div>
           <div className="tor-status-pill" role="status" aria-live="polite">
-            <Save aria-hidden="true" /> {notice.startsWith("Draft saved") ? notice : "Draft saved · illustrative"}
+            <Save aria-hidden="true" /> {notice || "Live numbering · preview only"}
           </div>
         </section>
 
         <section className="tor-progress-shell" aria-label="Application progress">
           <div className="tor-progress-heading">
-            <strong>Application progress</strong>
+            <strong>Renewal application</strong>
             <span><b>Step 4 of 8</b> · Terms of Reference</span>
           </div>
           <div className="tor-step-track">
@@ -410,104 +573,225 @@ export function PersonnelTOR() {
         </section>
 
         <div className="tor-content-grid">
-          <aside className="tor-aside" aria-label="TOR item navigation and guidance">
-            <nav className="tor-nav-panel" aria-label="Jump to a numbered TOR item">
-              <div className="tor-nav-head">
-                <div>
-                  <h2 className="tor-nav-title">TOR items</h2>
-                  <p className="tor-nav-subtitle">{answeredCount} of 30 addressed</p>
-                </div>
+          <section className="tor-workspace" aria-labelledby="tor-workspace-title">
+            <div className="tor-workspace-header">
+              <div>
+                <h2 className="tor-workspace-title" id="tor-workspace-title">TOR structure</h2>
+                <p className="tor-workspace-subtitle">Edit the text, then add or remove rows to match the role.</p>
               </div>
-              <div className="tor-nav-progress" aria-label={`${completedPercent}% of TOR items addressed`}>
-                <span style={{ width: `${completedPercent}%` }} />
+              <button type="button" className="tor-button tor-button-primary" onClick={addSection}>
+                <Plus aria-hidden="true" /> Add section
+              </button>
+            </div>
+            <div className="tor-config-row">
+              <div className="tor-numbering-setting">
+                <label htmlFor="tor-numbering-prefix">Numbering prefix</label>
+                <input
+                  id="tor-numbering-prefix"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={numberingPrefix}
+                  onChange={(event) => {
+                    setNumberingPrefix(event.target.value);
+                    setNotice("Numbered preview updated · not stored");
+                  }}
+                />
+                <span className="tor-numbering-example">Example: {numberingBase}.1 → {numberingBase}.1.1 → {numberingBase}.1.1.a</span>
               </div>
-              <div className="tor-item-list">
-                {itemStates.map((state, index) => {
-                  const item = index + 1;
-                  return (
+              <div className="tor-counts" aria-label={`${sections.length} sections and ${totals.numberedLines} numbered lines`}>
+                <span><b>{sections.length}</b> sections</span>
+                <span><b>{totals.numberedLines}</b> numbered lines</span>
+                <span><b>{totals.completed}/{totals.descriptions}</b> descriptions</span>
+              </div>
+            </div>
+
+            <div className="tor-sections">
+              {sections.length === 0 && (
+                <div className="tor-empty-state">No sections yet. Add a section to begin building the numbered TOR.</div>
+              )}
+              {sections.map((section, sectionIndex) => (
+                <article className="tor-section-card" key={section.id}>
+                  <div className="tor-section-header">
+                    <span className="tor-section-number" aria-label={`Section ${sectionNumber(sectionIndex)}`}>
+                      {sectionNumber(sectionIndex)}
+                    </span>
+                    <label className="tor-field-label tor-section-title-field" htmlFor={`section-title-${section.id}`}>
+                      Section title
+                      <input
+                        id={`section-title-${section.id}`}
+                        className="tor-field-input"
+                        value={section.title}
+                        onChange={(event) => updateSection(section.id, { title: event.target.value })}
+                        placeholder="e.g. Core Functions"
+                        maxLength={160}
+                      />
+                    </label>
+                    <label className="tor-field-label tor-weight-field" htmlFor={`section-weight-${section.id}`}>
+                      Weight (%)
+                      <input
+                        id={`section-weight-${section.id}`}
+                        className="tor-field-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={section.weight}
+                        onChange={(event) => updateSection(section.id, { weight: event.target.value })}
+                        placeholder="—"
+                      />
+                    </label>
                     <button
-                      key={item}
                       type="button"
-                      className="tor-item-button"
-                      aria-current={currentItem === item ? "step" : undefined}
-                      aria-label={`TOR item ${item}, ${state === "empty" ? "unanswered" : state === "na" ? "marked not applicable" : "answered"}`}
-                      onClick={() => goToItem(item)}
+                      className="tor-icon-button tor-section-remove"
+                      onClick={() => removeSection(section.id)}
+                      aria-label={`Remove section ${sectionNumber(sectionIndex)} and its entries`}
+                      title="Remove section and its nested entries"
                     >
-                      <span className="tor-item-number">{String(item).padStart(2, "0")}</span>
-                      <StatusMark state={state} />
+                      <Trash2 aria-hidden="true" />
                     </button>
-                  );
-                })}
+                  </div>
+
+                  <div className="tor-functions">
+                    {section.functions.length === 0 && (
+                      <p className="tor-empty-state">No functions in this section yet. Add one below.</p>
+                    )}
+                    {section.functions.map((item, functionIndex) => (
+                      <div className="tor-function-card" key={item.id}>
+                        <div className="tor-function-row">
+                          <span className="tor-line-number" aria-label={`TOR ${functionNumber(sectionIndex, functionIndex)}`}>
+                            {functionNumber(sectionIndex, functionIndex)}
+                          </span>
+                          <label className="tor-field-label" htmlFor={`function-${item.id}`}>
+                            Function {functionNumber(sectionIndex, functionIndex)}
+                            <textarea
+                              id={`function-${item.id}`}
+                              className="tor-field-textarea"
+                              value={item.text}
+                              onChange={(event) => updateFunction(section.id, item.id, event.target.value)}
+                              placeholder="Describe a key function or expected result."
+                              maxLength={800}
+                              rows={2}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="tor-icon-button"
+                            onClick={() => removeFunction(section.id, item.id)}
+                            aria-label={`Remove function ${functionNumber(sectionIndex, functionIndex)} and its activities`}
+                            title="Remove function and nested activities"
+                          >
+                            <Trash2 aria-hidden="true" />
+                          </button>
+                        </div>
+
+                        <div className="tor-nested-activities" aria-label={`Activities under ${functionNumber(sectionIndex, functionIndex)}`}>
+                          {item.activities.map((activity, activityIndex) => {
+                            const number = activityNumber(sectionIndex, functionIndex, activityIndex);
+                            return (
+                              <div className="tor-activity-row" key={activity.id}>
+                                <span className="tor-activity-number" aria-label={`TOR ${number}`}>{number}</span>
+                                <textarea
+                                  className="tor-field-textarea tor-activity-input"
+                                  value={activity.text}
+                                  onChange={(event) => updateActivity(section.id, item.id, activity.id, event.target.value)}
+                                  placeholder={`Describe activity ${number}`}
+                                  aria-label={`Description for TOR ${number}`}
+                                  maxLength={800}
+                                  rows={2}
+                                />
+                                <button
+                                  type="button"
+                                  className="tor-icon-button"
+                                  onClick={() => removeActivity(section.id, item.id, activity.id)}
+                                  aria-label={`Remove activity ${number}`}
+                                  title="Remove activity"
+                                >
+                                  <Trash2 aria-hidden="true" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                          <button type="button" className="tor-add-inline" onClick={() => addActivity(section.id, item.id)}>
+                            <Plus aria-hidden="true" /> Add activity
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <button type="button" className="tor-add-inline tor-add-function" onClick={() => addFunction(section.id)}>
+                      <Plus aria-hidden="true" /> Add function
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <aside className="tor-output-panel" aria-labelledby="tor-output-title">
+            <div className="tor-output-header">
+              <div>
+                <div className="tor-output-heading">
+                  <ListChecks aria-hidden="true" />
+                  <h2 className="tor-output-title" id="tor-output-title">Numbered TOR output</h2>
+                </div>
+                <p className="tor-output-subtitle">All sections and entries, collected in order.</p>
               </div>
-              <div className="tor-legend" aria-label="Item status legend">
-                <span className="tor-legend-item"><StatusMark state="answered" /> Answered</span>
-                <span className="tor-legend-item"><StatusMark state="empty" /> Unanswered</span>
-                <span className="tor-legend-item"><StatusMark state="na" /> N/A</span>
-              </div>
-            </nav>
-            <div className="tor-note-panel">
-              <div className="tor-note-title"><CircleHelp aria-hidden="true" /> When an item does not apply</div>
-              <p>Select <strong>Mark as N/A</strong> when a numbered item is not relevant to your role. This keeps the entry distinct from an unanswered item.</p>
+              <span className="tor-output-count">{totals.numberedLines} lines</span>
+            </div>
+            <div className="tor-output-content">
+              {sections.length === 0 && (
+                <div className="tor-empty-state">Your numbered output will appear here when you add a section.</div>
+              )}
+              {sections.map((section, sectionIndex) => (
+                <section className="tor-output-section" key={section.id}>
+                  <h3>
+                    <code>{sectionNumber(sectionIndex)}</code>
+                    <span>{sectionHeading(section)}</span>
+                  </h3>
+                  {section.functions.map((item, functionIndex) => (
+                    <div key={item.id}>
+                      <div className="tor-output-function">
+                        <code>{functionNumber(sectionIndex, functionIndex)}</code>
+                        <span className={item.text.trim() ? "" : "tor-output-empty"}>
+                          {item.text.trim() || "Add a function description"}
+                        </span>
+                      </div>
+                      {item.activities.length > 0 && (
+                        <div className="tor-output-activity-list">
+                          {item.activities.map((activity, activityIndex) => (
+                            <div className="tor-output-activity" key={activity.id}>
+                              <code>{activityNumber(sectionIndex, functionIndex, activityIndex)}</code>
+                              <span className={activity.text.trim() ? "" : "tor-output-empty"}>
+                                {activity.text.trim() || "Add an activity description"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </section>
+              ))}
             </div>
           </aside>
-
-          <section className="tor-editor" aria-labelledby="tor-item-title">
-            <div className="tor-editor-header">
-              <div>
-                <div className="tor-item-kicker">Terms of Reference · Entry {String(currentItem).padStart(2, "0")}</div>
-                <h2 className="tor-item-heading" id="tor-item-title">TOR #{currentItem}</h2>
-              </div>
-              <div className="tor-item-counter" aria-live="polite">Item {currentItem} of {TOTAL_ITEMS}</div>
-            </div>
-            <div className="tor-editor-body">
-              <label className="tor-prompt-label" htmlFor="tor-response">
-                Response for TOR #{currentItem}
-                <span className="tor-prompt-hint">Enter the applicable information for this item. Use neutral, concise wording.</span>
-              </label>
-              <textarea
-                id="tor-response"
-                className="tor-response"
-                value={currentResponse}
-                onChange={(event) => updateResponse(event.target.value)}
-                placeholder="Type your response here, or mark this item as N/A."
-                aria-describedby={showError ? "tor-error tor-field-help" : "tor-field-help"}
-                aria-invalid={showError}
-                maxLength={1200}
-              />
-              <div className="tor-field-footer">
-                <span className="tor-helper-text" id="tor-field-help"><LockKeyhole aria-hidden="true" /> Avoid including sensitive personal identifiers.</span>
-                <span className="tor-char-count">{currentResponse.length} / 1,200</span>
-              </div>
-              {showError && <div className="tor-error" id="tor-error" role="alert"><X aria-hidden="true" /> Add a response or mark this item as N/A before continuing.</div>}
-              <div className="tor-editor-controls">
-                <button type="button" className="tor-na-button" onClick={markNotApplicable}>
-                  <Check aria-hidden="true" /> Mark as N/A
-                </button>
-                <div className="tor-advance">
-                  <button type="button" className="tor-button tor-button-secondary" onClick={() => goToItem(currentItem - 1)} disabled={currentItem === 1}>
-                    <ArrowLeft aria-hidden="true" /> Previous
-                  </button>
-                  <button type="button" className="tor-button tor-button-primary" onClick={handleNext} disabled={currentItem === TOTAL_ITEMS}>
-                    Next item <ArrowRight aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            {notice.startsWith("This is a visual") && (
-              <div className="tor-message" role="status"><CircleHelp aria-hidden="true" />{notice}</div>
-            )}
-          </section>
         </div>
 
         <div className="tor-bottom-row">
           <div className="tor-privacy">
             <ShieldCheck aria-hidden="true" />
-            <span><strong>Privacy reminder</strong><br />Your entries should contain work-related information only. This preview does not store or submit responses.</span>
+            <span><strong>Preview only</strong><br />This example uses the supplied TOR entries. Changes remain in this screen and are not saved or submitted.</span>
           </div>
-          <button type="button" className="tor-button tor-button-secondary tor-review-button" onClick={handleContinue}>
-            <FileCheck2 aria-hidden="true" /> Continue to Step 5
-          </button>
+          <div className="tor-review-actions">
+            <button type="button" className="tor-button tor-button-secondary" onClick={() => setNotice("Back navigation is illustrative in this prototype.")}>
+              <ArrowLeft aria-hidden="true" /> Back to Step 3
+            </button>
+            <button type="button" className="tor-button tor-button-primary" onClick={handleContinue}>
+              <FileCheck2 aria-hidden="true" /> Continue to Step 5
+            </button>
+          </div>
         </div>
+        {(notice.startsWith("Add a description") || notice.startsWith("All TOR descriptions")) && (
+          <div className="tor-message" role="status"><CircleHelp aria-hidden="true" />{notice}</div>
+        )}
       </div>
     </main>
   );
