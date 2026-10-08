@@ -6,6 +6,11 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+// Enable only when the API is reachable through one trusted reverse proxy.
+// The HTTPS Compose overlay keeps the direct app port bound to loopback.
+if (process.env.TRUST_PROXY_HOPS === "1") app.set("trust proxy", 1);
+else if (process.env.TRUST_PROXY_HOPS && process.env.TRUST_PROXY_HOPS !== "0")
+  throw new Error("TRUST_PROXY_HOPS must be 0 or 1.");
 
 app.use(
   pinoHttp({

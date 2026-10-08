@@ -11,6 +11,13 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Separate pool: request coordination must never consume the connections used
+// by handlers. Transaction locks automatically release on connection loss.
+export const maintenancePool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20,
+  connectionTimeoutMillis: 2000,
+});
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";

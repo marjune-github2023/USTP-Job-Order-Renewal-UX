@@ -51,3 +51,11 @@ Thumbs.db
 # Local Python environment
 .venv/
 __pycache__/
+
+# Private automatic pre-restore backups
+.private-backups/
+
+# Private Docker deployment configuration
+.env.docker
+.env.docker.*
+!.env.docker.example

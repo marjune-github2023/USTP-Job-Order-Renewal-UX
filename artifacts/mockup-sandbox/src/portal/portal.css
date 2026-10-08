@@ -900,3 +900,49 @@
 .p-email-settings h2 {
   margin-top: 28px;
 }
+
+.p-database-backups {
+  max-width: 900px;
+}
+.p-database-backups h2 {
+  margin-top: 24px;
+}
+.p-database-backups label {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.p-database-backups input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.p-database-backups dl > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+.p-database-backups li {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.p-database-backups hr {
+  margin: 28px 0;
+  border: 0;
+  border-top: 1px solid #ddd;
+}
+
+.p-renewal-choice {
+  margin-bottom: 24px;
+}
+.p-renewal-choice label {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.p-renewal-choice select {
+  width: 100%;
+  min-width: 0;
+}
+.p-renew-action {
+  margin: 4px;
+}

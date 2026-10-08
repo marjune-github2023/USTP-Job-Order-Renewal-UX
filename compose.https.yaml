@@ -1,0 +1,25 @@
+# Use with: docker compose --env-file .env.docker -f compose.yaml -f compose.https.yaml up -d --build --wait
+services:
+  app:
+    environment:
+      PUBLIC_APP_URL: https://${DOMAIN:?Set DOMAIN to the public portal hostname}
+      TRUST_PROXY_HOPS: "1"
+  https:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN to the public portal hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+volumes:
+  certificates:
+  caddy_config:

@@ -1,3 +1,4 @@
+import database from "./database";
 import emailSettings from "./email-settings";
 import { validDate } from "../contract/validation";
 import { Router } from "express";
@@ -13,6 +14,7 @@ admin.use((_req, res, next) => {
   next();
 });
 admin.use("/email", emailSettings);
+admin.use("/database", database);
 admin.get("/users", async (_req, res) => {
   const users = await pool.query(
     "SELECT id,name,email,role,created_at FROM portal_users ORDER BY created_at DESC",

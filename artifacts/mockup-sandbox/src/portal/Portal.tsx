@@ -1,3 +1,4 @@
+import DatabaseBackups from "./DatabaseBackups";
 import EmailSettings from "./EmailSettings";
 import ContractSettings from "./ContractSettings";
 import AdminPanel from "./AdminPanel";
@@ -105,7 +106,7 @@ function Badge({ status }: { status: string }) {
 }
 export default function Portal() {
   const [section, setSection] = useState<
-    "applications" | "users" | "offices" | "settings" | "email"
+    "applications" | "users" | "offices" | "settings" | "email" | "database"
   >(() =>
     new URLSearchParams(location.search).has("email_status")
       ? "email"
@@ -141,6 +142,35 @@ export default function Portal() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [renewSource, setRenewSource] = useState("");
+  const approved = applications
+    .filter((a) => a.status === "approved")
+    .sort(
+      (a, b) =>
+        b.end_date.localeCompare(a.end_date) ||
+        b.updated_at.localeCompare(a.updated_at),
+    );
+  async function createBlank() {
+    const a = await api<Application>("/applications", "POST");
+    setShowNew(false);
+    await open(a.id);
+    await refresh();
+  }
+  async function renew(sourceId: string) {
+    const result = await api<{ application: Application; reused: boolean }>(
+      `/applications/${sourceId}/renew`,
+      "POST",
+    );
+    setShowNew(false);
+    await open(result.application.id);
+    await refresh();
+    setNotice(
+      result.reused
+        ? "Your existing renewal draft has been reopened. Continue where you left off."
+        : "Your information and TOR have been copied. Enter the new contract dates, check what changed, then review and submit.",
+    );
+  }
   async function refresh() {
     setApplications(await api<Application[]>("/applications"));
   }
@@ -221,6 +251,7 @@ export default function Portal() {
                     setSelected(null);
                     setApplications([]);
                     setSection("applications");
+                    setShowNew(false);
                   })
                 }
               >
@@ -246,7 +277,14 @@ export default function Portal() {
         {user?.role === "hrmo" && !selected && !resetToken && (
           <nav className="p-admin-nav" aria-label="HRMO navigation">
             {(
-              ["applications", "offices", "users", "settings", "email"] as const
+              [
+                "applications",
+                "offices",
+                "users",
+                "settings",
+                "email",
+                "database",
+              ] as const
             ).map((tab) => (
               <button
                 key={tab}
@@ -266,7 +304,9 @@ export default function Portal() {
                       ? "Users"
                       : tab === "settings"
                         ? "Contract settings"
-                        : "Email settings"}
+                        : tab === "email"
+                          ? "Email settings"
+                          : "Database backups"}
               </button>
             ))}
           </nav>
@@ -390,6 +430,8 @@ export default function Portal() {
               </p>
             </section>
           </div>
+        ) : user.role === "hrmo" && section === "database" ? (
+          <DatabaseBackups />
         ) : user.role === "hrmo" && section === "email" ? (
           <EmailSettings
             request={api}
@@ -456,22 +498,65 @@ export default function Portal() {
                   <button
                     className="p-primary"
                     disabled={busy}
-                    onClick={() =>
-                      void run(async () => {
-                        const a = await api<Application>(
-                          "/applications",
-                          "POST",
-                        );
-                        await open(a.id);
-                        await refresh();
-                      })
-                    }
+                    onClick={() => {
+                      if (approved.length) {
+                        setRenewSource(approved[0].id);
+                        setShowNew(true);
+                      } else void run(createBlank);
+                    }}
                   >
                     <Plus size={18} /> New application
                   </button>
                 )}
               </div>
             </div>
+            {user.role === "applicant" && showNew && (
+              <section
+                className="p-card p-section p-renewal-choice"
+                aria-label="Start an application"
+              >
+                <h2>Reuse your previous application</h2>
+                <p>
+                  Keep your personal details, education, contacts, compensation,
+                  office and TOR. Enter the new contract dates and update only
+                  what changed.
+                </p>
+                <label>
+                  Previous approved application
+                  <select
+                    value={renewSource}
+                    disabled={busy}
+                    onChange={(e) => setRenewSource(e.target.value)}
+                  >
+                    {approved.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.start_date} to {a.end_date} · {a.position} ·{" "}
+                        {a.id.slice(0, 8).toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="p-muted">
+                  An existing unfinished renewal will be reopened. Each new
+                  renewal still goes to HRMO for review.
+                </p>
+                <div className="p-actions">
+                  <button
+                    className="p-primary"
+                    disabled={busy || !renewSource}
+                    onClick={() => void run(() => renew(renewSource))}
+                  >
+                    Reuse and start renewal
+                  </button>
+                  <button disabled={busy} onClick={() => void run(createBlank)}>
+                    Start with a blank form
+                  </button>
+                  <button disabled={busy} onClick={() => setShowNew(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </section>
+            )}
             <div className="p-stats">
               {(user.role === "hrmo"
                 ? ["submitted", "under_review", "approved"]
@@ -583,6 +668,17 @@ export default function Portal() {
                                 {a.id.slice(0, 8)}
                               </span>
                             </button>
+                            {user.role === "applicant" &&
+                              a.status === "approved" && (
+                                <button
+                                  className="p-renew-action"
+                                  disabled={busy}
+                                  aria-label={`Renew application ${a.id.slice(0, 8)}`}
+                                  onClick={() => void run(() => renew(a.id))}
+                                >
+                                  Renew
+                                </button>
+                              )}
                           </td>
                         </tr>
                       ))}
@@ -747,6 +843,20 @@ function ApplicationDetail({
         </div>
         <Badge status={a.status} />
       </div>
+      {editable &&
+        a.events?.some(
+          (e) =>
+            e.status === "draft" &&
+            /^Renewal created from application [a-f0-9-]{36}\.$/.test(e.note),
+        ) && (
+          <div className="p-alert">
+            Your previous information and TOR are filled in. Enter the new
+            contract dates, update anything that changed and check the Review
+            step before submitting. An inactive office must be selected again.
+            Add any supporting files needed for this period; previous uploads
+            and signed/generated contracts stay with the original application.
+          </div>
+        )}
       {a.status === "returned" && (
         <div className="p-alert">
           HRMO has requested corrections. Review the notes below, update your

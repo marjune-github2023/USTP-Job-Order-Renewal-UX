@@ -1,4 +1,5 @@
 import admin from "./admin";
+import { databaseGate } from "../lib/database-gate";
 import { generateContract } from "../contract/generate";
 import {
   personalDetails,
@@ -68,6 +69,7 @@ portal.use((req, res, next) => {
   }
   next();
 });
+portal.use(databaseGate);
 portal.use(json({ limit: "1mb" }));
 const attempts = new Map<string, { count: number; until: number }>();
 portal.use("/auth", (req, _res, next) => {
@@ -299,6 +301,50 @@ function version(req: Request, app: any) {
   if (req.body?.version !== app.version)
     fail(409, "This application changed. Refresh it before continuing.");
 }
+// Reuse only applicant-owned approved records. Locking the source serializes
+// repeated clicks so they reopen the same unfinished renewal.
+portal.post("/applications/:id/renew", (req, res) => {
+  if (res.locals.user.role !== "applicant")
+    fail(403, "Only applicants can start a renewal.");
+  return withApplication(req, res, async (client, source, user) => {
+    if (source.status !== "approved")
+      fail(409, "Choose an approved application to renew.");
+    const note = `Renewal created from application ${source.id}.`;
+    const existing = await client.query(
+      `SELECT a.* FROM applications a WHERE a.user_id=$1
+       AND a.status IN ('draft','returned') AND EXISTS (
+         SELECT 1 FROM application_events e WHERE e.application_id=a.id
+         AND e.actor_id=$1 AND e.status='draft' AND e.note=$2
+       ) ORDER BY a.created_at DESC LIMIT 1 FOR UPDATE OF a`,
+      [user.id, note],
+    );
+    if (existing.rowCount)
+      return { application: existing.rows[0], reused: true };
+    const result = await client.query(
+      `INSERT INTO applications (
+        id,user_id,form_version,position,office,tor,tor_sections,tor_items,
+        personal_details,education_details,contact_details,contract_details,wizard_step
+       ) SELECT $1,user_id,form_version,position,
+         CASE WHEN form_version <> 2 OR EXISTS (
+           SELECT 1 FROM portal_offices o WHERE o.name=a.office AND o.active
+         ) THEN office ELSE '' END,
+         tor,tor_sections,tor_items,personal_details,education_details,contact_details,
+         CASE WHEN form_version=2 THEN jsonb_build_object(
+           'daily_rate',COALESCE(contract_details->>'daily_rate',''),
+           'supervisor',COALESCE(contract_details->>'supervisor',''),
+           'supervisor_position',COALESCE(contract_details->>'supervisor_position','')
+         ) ELSE contract_details - 'contract_date' END,3
+       FROM applications a WHERE a.id=$2 RETURNING *`,
+      [randomUUID(), source.id],
+    );
+    await client.query(
+      "INSERT INTO application_events (application_id,actor_id,status,note) VALUES ($1,$2,'draft',$3)",
+      [result.rows[0].id, user.id, note],
+    );
+    res.status(201);
+    return { application: result.rows[0], reused: false };
+  });
+});
 portal.get("/applications/:id", (req, res) =>
   withApplication(req, res, async (client, app) => {
     const documents = await client.query(
@@ -612,7 +658,7 @@ portal.get("/applications/:id/contract", (req, res) =>
     res.send(result.rows[0].contents);
   }),
 );
-portal.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
+portal.use((error: any, req: Request, res: Response, _next: NextFunction) => {
   const status =
     error instanceof HttpError
       ? error.status
@@ -629,7 +675,9 @@ portal.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
         error instanceof HttpError
           ? error.message
           : status === 413
-            ? "File or request is too large (documents: 5 MB; CSV files: 500 KB)."
+            ? req.path.startsWith("/admin/database")
+              ? "SQL backup exceeds the 50 MB limit."
+              : "File or request is too large (documents: 5 MB; CSV files: 500 KB)."
             : status === 400
               ? "Invalid request."
               : "Unable to complete the request. Please try again.",

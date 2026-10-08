@@ -1,0 +1,25 @@
+# Include only build inputs. Private env files, backups and uploads never enter the context.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!tsconfig*.json
+!artifacts/
+!artifacts/**
+!lib/
+!lib/**
+!scripts/
+!scripts/**
+!deploy/
+!deploy/entrypoint.sh
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/.env*
+**/.private-backups
+**/__pycache__
+**/.venv
+**/tests
+**/test-results
+**/coverage
