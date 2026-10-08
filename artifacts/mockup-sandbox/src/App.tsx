@@ -1,3 +1,4 @@
+import Portal from "./portal/Portal";
 import { useEffect, useState, type ComponentType } from "react";
 
 import { modules as discoveredModules } from "./.generated/mockup-components";
@@ -140,7 +141,7 @@ function App() {
     );
   }
 
-  return <Gallery />;
+  return <Portal />;
 }
 
 export default App;

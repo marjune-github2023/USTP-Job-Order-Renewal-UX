@@ -5,11 +5,13 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./initialize": "./src/initialize.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
+    "create-hrmo": "node scripts/create-hrmo.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

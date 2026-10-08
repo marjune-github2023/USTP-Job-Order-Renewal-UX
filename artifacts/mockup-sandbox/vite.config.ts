@@ -56,6 +56,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    proxy: { "/api": "http://127.0.0.1:5001" },
     port,
     host: "0.0.0.0",
     allowedHosts: true,

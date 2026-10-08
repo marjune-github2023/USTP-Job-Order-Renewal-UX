@@ -1,5 +1,6 @@
+import path from "node:path";
 import express, { type Express } from "express";
-import cors from "cors";
+import portal from "./routes/portal";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -25,10 +26,19 @@ app.use(
     },
   }),
 );
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
+app.disable("x-powered-by");
 app.use("/api", router);
+app.use("/api", portal);
+
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "API route not found." });
+});
+if (process.env.PORTAL_DIST_DIR) {
+  const directory = path.resolve(process.env.PORTAL_DIST_DIR);
+  app.use(express.static(directory));
+  app.get("/{*path}", (_req, res) => {
+    res.sendFile(path.join(directory, "index.html"));
+  });
+}
 
 export default app;
