@@ -1,0 +1,1020 @@
+Absolutely. Here is a **copy-paste-ready master prompt** you can use with an AI website builder or coding agent to build the complete system.
+
+Build a complete, production-quality web application for the **University of Science and Technology of Southern Philippines (USTP) – Claveria Campus, Human Resource Management Office (HRMO)**.
+
+The system is for the **USTP Claveria Job Order Renewal for October to December 2026**.
+
+The goal is to replace the current long Google Form experience with a professional, official-looking, step-by-step web application while preserving the information collected by the existing form and ultimately generating an official USTP Job Order Contract.
+
+---
+
+# 1. CORE PRODUCT GOAL
+
+Create a modern, highly usable, institutional HR web application with this workflow:
+
+**Personnel**
+→ Complete guided application  
+→ Save progress  
+→ Move between steps  
+→ Review all information  
+→ Edit any section  
+→ Submit application  
+→ Receive confirmation/reference number
+
+**HRMO**
+→ View submitted applications  
+→ Review applicant information  
+→ Approve/review applications  
+→ Generate the official Job Order Contract  
+→ Download/print the generated contract
+
+The application must feel like an **official USTP government/university system**, not a generic SaaS dashboard.
+
+---
+
+# 2. DESIGN DIRECTION
+
+Use a visual identity inspired by USTP's institutional appearance.
+
+### Primary colors
+
+- Deep USTP blue
+- Dark navy blue
+- USTP gold/yellow accent
+- White
+- Very light neutral gray backgrounds
+
+Do NOT use the typical startup/SaaS appearance with excessive gradients, colorful cards, purple/blue gradients, glassmorphism, or excessive rounded corners.
+
+The design should feel:
+
+- Official
+- Institutional
+- Government/university appropriate
+- Trustworthy
+- Clean
+- Modern
+- Accessible
+- Professional
+- Calm
+- Easy to navigate
+
+Use restrained borders, subtle shadows, strong typography hierarchy, and generous whitespace.
+
+---
+
+# 3. USTP HEADER
+
+Create an institutional header.
+
+Display:
+
+**University of Science and Technology of Southern Philippines**
+
+**Claveria Campus**
+
+**Human Resource Management Office**
+
+Include an appropriate USTP-style institutional mark/logo area.
+
+Do not fabricate an official USTP logo if an official asset is not available. Create a clean placeholder/logo area that can easily be replaced with the official USTP logo.
+
+Include an HRMO designation.
+
+The header should look appropriate for an official university website.
+
+---
+
+# 4. APPLICATION TITLE
+
+Display prominently:
+
+**USTP Claveria Job Order Renewal**
+
+**October to December 2026**
+
+Subtitle:
+
+**Personnel Profile and Contract Details Update**
+
+Include the official data privacy notice from the source form.
+
+The source form states that the information is being gathered to digitize HR procedures and establish a job-order personnel profiling database, and that the information is protected under the Data Privacy Act of 2012.
+
+Preserve the meaning and terminology of the source material.
+
+Also display:
+
+**Please accomplish this form within two (2) days of receipt.**
+
+---
+
+# 5. STEP-BY-STEP APPLICATION EXPERIENCE
+
+Do NOT present the entire form on one page.
+
+Create a guided multi-step flow.
+
+Recommended steps:
+
+### STEP 1 — Personal Information
+
+Collect:
+
+- Email
+- First Name
+- Middle Name
+- Last Name
+- Suffix
+- USTP Email
+- Date of Birth
+- Sex
+- Civil Status
+- Complete Address
+
+---
+
+### STEP 2 — Education & Eligibility
+
+Collect:
+
+- Bachelor's Degree
+- Master's Degree / Units
+- Doctoral / Doctorate Degree / Units
+- Eligibility
+
+Eligibility options:
+
+- None
+- Career Service Subprofessional
+- Career Service Professional
+- RA 1080 Bar
+- RA 1080 Board
+- CSEE/CES
+- PD 907
+- Other
+
+---
+
+### STEP 3 — Contract Information
+
+Collect:
+
+- USTP ID Number
+- PRC License Number
+- Position Title
+- Contract Period
+
+Make the contract period easy to understand and verify.
+
+---
+
+### STEP 4 — Terms of Reference
+
+Provide all TOR fields from the existing USTP form.
+
+There are TOR #1 through TOR #30.
+
+Do NOT make this section visually overwhelming.
+
+Instead of presenting 30 large text fields at once, use a guided TOR interface.
+
+Possible UX:
+
+**Terms of Reference**
+
+"Please provide the duties and responsibilities applicable to your position."
+
+Display one TOR item at a time or group the TOR items into logical subsections.
+
+Example:
+
+**TOR 1 of 30**
+
+[Large textarea]
+
+**← Previous**                         **Next TOR →**
+
+Show progress:
+
+`TOR 1 / 30`
+
+Allow the user to navigate backward and forward without losing information.
+
+If the original form indicates that "N/A" should be used when a field is not applicable, preserve that instruction.
+
+---
+
+### STEP 5 — Compensation & Supervisor
+
+Collect:
+
+- Daily Rate in Words
+- Daily Rate Numerical
+- Immediate Supervisor
+- Position of Immediate Supervisor
+
+Make the numerical daily rate easy to enter and validate.
+
+If appropriate, automatically assist with the conversion of the numerical amount into words, but allow HRMO/user correction.
+
+---
+
+### STEP 6 — Government & Contact Information
+
+Collect:
+
+- Updated Contact Number
+- TIN
+- PAGIBIG
+- SSS
+- PHILHEALTH
+
+Clearly explain that these fields are sensitive information and should be entered carefully.
+
+---
+
+### STEP 7 — Office Affiliation
+
+Provide the office affiliation choices from the existing USTP form.
+
+Include:
+
+- College of Agriculture
+- College of Arts and Sciences
+- College of Engineering and Technology
+- Extension and Community Relations Office
+- Career Center and Industrial Relations
+- Research Office
+- Laboratory Management Office
+- Administrative Management Services Division
+- Auxiliary Management Services Division
+- Enterprise Division Office
+- Financial Management Services Division
+- Human Resource Management Office
+- Arts and Culture Unit
+- Admission and Scholarship Office
+- Health & Services
+- ICT Office
+- Library and Audio-visual Services
+- NSTP
+- Office of the Student Affairs
+- Quality Assurance and Accreditation Services
+- Registrar’s Office
+- Sports Unit
+- Office of the Campus Architect
+- Office of the Chancellor
+- Planning Monitoring and Evaluation Office
+- Campus Safety and Security Unit
+- Office of the Vice Chancellor for Student Affairs and Services
+- Office of the Vice Chancellor for Research and Innovation
+- Office of the Vice Chancellor for Finance and Administration
+- Office of the Vice Chancellor for Academic Affairs
+- Institute of Continuing Education and Training (ICET)
+- Supply and Property Management Services
+- Inspection Unit
+- Procurement Services Section
+- COA Office
+- Other
+
+---
+
+# 6. PERSISTENT PROGRESS NAVIGATION
+
+Create a persistent progress indicator.
+
+Example:
+
+**01 Personal**
+→ **02 Education**
+→ **03 Contract**
+→ **04 TOR**
+→ **05 Compensation**
+→ **06 Government IDs**
+→ **07 Office**
+→ **08 Review**
+
+Visual states:
+
+- Completed = checkmark
+- Current = USTP blue highlight
+- Not completed = muted gray
+- Error = clear error indicator
+
+The user should always know:
+
+1. Where they are
+2. What they have completed
+3. What remains
+
+---
+
+# 7. BACK AND NEXT BEHAVIOR
+
+Every step must have:
+
+**← Back**
+
+and
+
+**Save & Continue →**
+
+Never erase information when navigating backward.
+
+Example:
+
+User goes:
+
+Step 5 → Step 4 → changes TOR #17 → Step 5
+
+All Step 5 information must remain intact.
+
+Users should also be able to click completed steps in the progress navigation and directly edit them.
+
+---
+
+# 8. AUTOSAVE / SAVE PROGRESS
+
+Implement client-side autosave.
+
+As the user fills out the application:
+
+**Saved**
+
+or
+
+**Saving...**
+
+should appear unobtrusively.
+
+If technically possible, preserve the draft in browser local storage/session storage.
+
+The user should not lose their work because they accidentally refresh the page.
+
+Clearly distinguish:
+
+**Draft saved**
+
+from
+
+**Application submitted**
+
+A draft must never be treated as submitted.
+
+---
+
+# 9. VALIDATION
+
+Validate each step before allowing the user to continue.
+
+Show errors next to the relevant field.
+
+Do NOT simply show:
+
+"Form has errors."
+
+Instead show useful messages such as:
+
+**Please enter your USTP Email.**
+
+**Please select your civil status.**
+
+**Please enter a valid contact number.**
+
+**Please complete TOR #12 or enter N/A if applicable.**
+
+When validation fails:
+
+- Keep the user on the current step
+- Highlight the invalid fields
+- Scroll to the first invalid field
+- Preserve everything already entered
+
+---
+
+# 10. REVIEW PAGE
+
+This is one of the most important parts of the application.
+
+Create a professional **Review & Confirmation** page.
+
+Do not display the information as one huge block.
+
+Organize it into sections.
+
+Example:
+
+## Personal Information
+
+Name: Juan Dela Cruz  
+Civil Status: Married  
+Date of Birth: ...  
+Address: ...
+
+**[ Edit Personal Information ]**
+
+---
+
+## Education & Eligibility
+
+Bachelor's Degree: ...  
+Master's Degree: ...  
+Eligibility: ...
+
+**[ Edit Education ]**
+
+---
+
+## Contract Information
+
+USTP ID: ...  
+Position: ...  
+Contract Period: ...
+
+**[ Edit Contract Information ]**
+
+---
+
+## Terms of Reference
+
+TOR #1: ...  
+TOR #2: ...  
+TOR #3: ...
+
+**[ Edit Terms of Reference ]**
+
+---
+
+## Compensation & Supervisor
+
+Daily Rate: ...  
+Immediate Supervisor: ...
+
+**[ Edit Compensation ]**
+
+---
+
+## Government Information
+
+TIN: ...  
+PAGIBIG: ...  
+SSS: ...  
+PhilHealth: ...
+
+**[ Edit Government Information ]**
+
+---
+
+## Office Affiliation
+
+Office: ...
+
+**[ Edit Office ]**
+
+---
+
+Every Edit button should return the user directly to the appropriate step.
+
+After editing, return the user to the review page.
+
+---
+
+# 11. FINAL CONFIRMATION
+
+Before submission, display:
+
+**Please review your information carefully before submitting.**
+
+Then require a confirmation checkbox:
+
+"I certify that the information I have provided is accurate and complete to the best of my knowledge."
+
+Only enable:
+
+**Submit Renewal Application**
+
+after the checkbox is selected.
+
+Also provide:
+
+**← Back to Review**
+
+---
+
+# 12. SUBMISSION SUCCESS SCREEN
+
+After successful submission, show a professional confirmation page.
+
+Example:
+
+**Application Submitted Successfully**
+
+Your USTP Claveria Job Order Renewal application has been received by the Human Resource Management Office.
+
+Display:
+
+**Application Reference No.: JO-2026-00001**
+
+Include:
+
+- Date submitted
+- Applicant name
+- Contract period
+- Office affiliation
+
+Provide:
+
+**Download/Print Confirmation**
+
+and, if applicable:
+
+**A copy of your responses will be emailed to your provided email address.**
+
+Do not claim the email was sent unless the backend actually confirms it.
+
+---
+
+# 13. HRMO ADMIN DASHBOARD
+
+Create a separate HRMO interface.
+
+Dashboard sections:
+
+### New Submissions
+Applications recently submitted.
+
+### For Review
+Applications requiring HRMO review.
+
+### Approved
+Applications approved by HRMO.
+
+### Contracts Generated
+Applications where the official contract has been generated.
+
+Dashboard table:
+
+| Applicant | Position | Office | Contract Period | Status | Action |
+|---|---|---|---|---|---|
+
+Actions:
+
+- View
+- Edit/Correct
+- Review
+- Approve
+- Generate Contract
+- Download Contract
+
+Use filters:
+
+- Name
+- Position
+- Office
+- Contract period
+- Status
+- Date submitted
+
+---
+
+# 14. OFFICIAL JOB ORDER CONTRACT GENERATION
+
+The most important output of the system is the official Job Order Contract.
+
+Use the supplied **USTP Job Order Contract template** as the reference for the generated document.
+
+Do NOT replace the official contract wording with generic wording.
+
+The uploaded template establishes the structure including:
+
+- University of Science and Technology of Southern Philippines heading
+- Campus identification
+- Office of Chancellor
+- Formal "Know All Men by These Presents" opening
+- USTP party information
+- WORKER information
+- Contract period
+- Position
+- Office affiliation
+- Duties and responsibilities
+- Remuneration
+- Payment provisions
+- Extension/holiday provisions
+- Confidentiality/Data Privacy provision
+- Termination provisions
+- Signature section
+- Immediate Supervisor
+- Funds Available
+- Finance Management Services
+- Acknowledgment page
+
+Populate the template using the applicant's submitted data.
+
+The generated document should preserve the official formatting and wording as closely as possible.
+
+Output formats:
+
+**DOCX**
+
+and
+
+**PDF**
+
+The report must look like an official USTP document, not like a generated web report.
+
+---
+
+# 15. CONTRACT DATA MAPPING
+
+Create a clear mapping between website fields and contract fields.
+
+Examples:
+
+Website:
+
+`First Name + Middle Name + Last Name`
+
+→ Contract:
+
+`WORKER`
+
+Website:
+
+`Position Title`
+
+→ Contract:
+
+Position in Clause 1
+
+Website:
+
+`Contract Period`
+
+→ Contract:
+
+Contract period in Clause 1
+
+Website:
+
+`Office Affiliation`
+
+→ Contract:
+
+Office identified in Clause 1
+
+Website:
+
+`TOR #1–#30`
+
+→ Contract:
+
+Duties and Responsibilities section
+
+Website:
+
+`Daily Rate Numerical`
+
+→ Contract:
+
+Remuneration clause
+
+Website:
+
+`Immediate Supervisor`
+
+→ Contract:
+
+Immediate Supervisor signature section
+
+---
+
+# 16. DATA PRIVACY & SECURITY
+
+Because the system handles:
+
+- Date of birth
+- Address
+- TIN
+- PAGIBIG
+- SSS
+- PhilHealth
+- Contact information
+
+Treat the data as sensitive.
+
+Implement:
+
+- Secure authentication for HRMO
+- Role-based access
+- No sensitive information in URLs
+- HTTPS in production
+- Server-side validation
+- Audit trail for HRMO actions
+- Restricted contract access
+- Appropriate database security
+- No unnecessary exposure of government IDs
+- Clear privacy notice
+
+Do not store sensitive information in browser local storage once the application has been successfully submitted unless there is a clearly justified reason.
+
+---
+
+# 17. RESPONSIVE DESIGN
+
+The application must work exceptionally well on:
+
+- Desktop
+- Laptop
+- Tablet
+- Mobile phone
+
+Mobile users should not need to zoom.
+
+On mobile:
+
+- Progress navigation becomes a compact progress indicator
+- One-column fields
+- Large touch-friendly controls
+- Sticky Next/Back navigation where appropriate
+- Review cards stack vertically
+
+---
+
+# 18. ACCESSIBILITY
+
+Follow strong accessibility practices:
+
+- Proper labels
+- Keyboard navigation
+- High contrast
+- Visible focus states
+- Accessible error messages
+- Screen-reader-friendly controls
+- Do not rely on color alone to communicate status
+- Large enough touch targets
+
+---
+
+# 19. VISUAL COMPONENTS
+
+Use restrained institutional components:
+
+- White cards
+- Thin gray borders
+- Deep blue headings
+- Gold section accents
+- Square/slightly rounded corners
+- Minimal shadows
+- Professional tables
+- Clear typography
+
+Avoid:
+
+- Excessive rounded cards
+- Neon colors
+- Gradients
+- Glassmorphism
+- Excessive animations
+- Decorative illustrations that make the site look like a startup
+- Generic stock imagery
+
+Animations should be subtle and functional.
+
+For example:
+
+- Smooth step transition
+- Progress indicator transition
+- Success confirmation animation
+
+---
+
+# 20. FORM UX DETAILS
+
+Use appropriate controls.
+
+Examples:
+
+Sex:
+- Female
+- Male
+
+Civil Status:
+- Single
+- Married
+- Widowed
+- Separated
+
+Eligibility:
+- Radio/select control
+
+Office:
+- Searchable select/radio list because there are many offices
+
+Date of Birth:
+- Date picker
+
+Contract Period:
+- Date fields/date picker where appropriate
+
+Daily Rate:
+- Currency/number input
+
+TOR:
+- Large textarea
+
+Do not use a giant dropdown when radio buttons or searchable selection would be more usable.
+
+---
+
+# 21. ERROR RECOVERY
+
+If the user accidentally closes or refreshes the page:
+
+Show:
+
+**We found an unfinished application.**
+
+**Continue where you left off**
+
+or
+
+**Start a new application**
+
+Do not overwrite an existing draft without confirmation.
+
+---
+
+# 22. CONFIRMATION BEFORE LEAVING
+
+If the user has unsaved changes and tries to leave:
+
+Display:
+
+**Your application has unsaved changes.**
+
+**Stay on page**
+
+**Leave**
+
+However, if autosave is active and the latest state is safely saved, do not unnecessarily interrupt the user.
+
+---
+
+# 23. PROFESSIONAL UX MICROCOPY
+
+Use clear language.
+
+Instead of:
+
+"Next"
+
+Prefer:
+
+**Save & Continue**
+
+Instead of:
+
+"Submit"
+
+Use:
+
+**Submit Renewal Application**
+
+Instead of:
+
+"Error"
+
+Use:
+
+**Please review the highlighted information.**
+
+Instead of:
+
+"Success"
+
+Use:
+
+**Application Submitted Successfully**
+
+---
+
+# 24. IMPORTANT: DO NOT LOSE THE EXISTING FORM STRUCTURE
+
+The current Google Form is the source of truth for the information that needs to be collected.
+
+The uploaded USTP Job Order Contract is the source of truth for the report/output format.
+
+Do not invent new required information unless necessary.
+
+Do not remove existing fields.
+
+Do not silently change the meaning of existing fields.
+
+Preserve the source terminology wherever possible.
+
+---
+
+# 25. FINAL EXPERIENCE
+
+The finished experience should feel like:
+
+**USTP Official Website**
+
+↓  
+
+**Job Order Renewal**
+
+↓
+
+**Step 1 of 8**
+
+↓
+
+**Complete information**
+
+↓
+
+**Save & Continue**
+
+↓
+
+**Review**
+
+↓
+
+**Edit any section**
+
+↓
+
+**Confirm**
+
+↓
+
+**Submit**
+
+↓
+
+**HRMO Dashboard**
+
+↓
+
+**Generate Official USTP Job Order Contract**
+
+↓
+
+**DOCX / PDF**
+
+---
+
+# 26. IMPLEMENTATION QUALITY
+
+Build this as a real application, not merely a static mockup.
+
+Use a clean component architecture.
+
+Keep:
+
+- UI components
+- Form state
+- Validation
+- API/data layer
+- Authentication
+- Contract generation
+- Database logic
+
+properly separated.
+
+The form state should be centralized so that navigating between steps never loses data.
+
+Use reusable components for:
+
+- Stepper
+- Form fields
+- Validation messages
+- Review sections
+- Edit buttons
+- Confirmation dialogs
+- Status badges
+- HRMO tables
+- Contract generation
+
+---
+
+# 27. PRIORITY ORDER
+
+Prioritize in this order:
+
+1. Excellent form UX
+2. Reliable step navigation
+3. Data preservation
+4. Review/edit functionality
+5. Accurate field collection
+6. USTP institutional visual identity
+7. HRMO dashboard
+8. Accurate Job Order Contract generation
+9. Security/privacy
+10. Responsive/mobile experience
+
+Do not sacrifice usability merely to make the interface visually impressive.
+
+The final product should feel like a **real USTP HRMO digital service** that personnel can confidently use to renew their Job Order contracts.
