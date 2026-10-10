@@ -88,8 +88,9 @@ database.post("/restore", async (req, res) => {
     httpOnly: true,
     sameSite: "lax",
     secure:
-      process.env.COOKIE_SECURE === "true" ||
-      process.env.NODE_ENV === "production",
+      process.env.COOKIE_SECURE
+      ? process.env.COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production",
   });
   res.json({
     ...result,
