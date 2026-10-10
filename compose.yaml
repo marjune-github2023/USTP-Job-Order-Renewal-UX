@@ -30,12 +30,12 @@ services:
       PGUSER: ustp
       PGDATABASE: ustp
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}
-      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:8080}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:7000}
       EMAIL_SETTINGS_KEY: ${EMAIL_SETTINGS_KEY:?Set a permanent 64-hex EMAIL_SETTINGS_KEY in .env.docker}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
     ports:
-      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-7000}:7000"
     volumes:
       - recovery:/var/lib/ustp/backups
     read_only: true
