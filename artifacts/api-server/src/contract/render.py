@@ -1,6 +1,7 @@
 """Render the supplied USTP contract layout with approved application data.
 Input is JSON on stdin; output is PDF bytes on stdout. No temporary applicant files.
 """
+import base64
 import io
 import json
 import re
@@ -54,6 +55,29 @@ def alpha(index):
 
 def render(data):
     personal, contract = data['personal_details'], data['contract_details']
+    contract_settings = data.get('contract_settings', {})
+
+    # Get contract settings with defaults
+    contract_title = contract_settings.get('contract_title', 'Know All Men by These Presents:')
+    university_name = contract_settings.get('university_name', 'UNIVERSITY OF SCIENCE AND TECHNOLOGY OF SOUTHERN PHILIPPINES-CLAVERIA')
+    university_address = contract_settings.get('university_address', 'Magsaysay Street, Poblacion, Claveria, Misamis Oriental')
+    university_ra = contract_settings.get('university_ra', 'Republic Act No. 10919')
+    whereas_1 = contract_settings.get('whereas_1', 'in order to meet the organizational and staffing requirements vis-a-vis existing manpower complement, as well as to not impair the delivery of government service, USTP, engage the services of Job Order workers in accordance with the provisions of COA-DBM JC No. 2 s. 2020 and COA-DBM JC No. 2 s. 2022, as amended;')
+    whereas_2 = contract_settings.get('whereas_2', 'USTP need the services of Job Order workers, who shall perform work not performed by its regular personnel as learning service provider;')
+    whereas_3 = contract_settings.get('whereas_3', 'WORKER has signified intention to provide the services needed by USTP and enter into a Job Order contract, to which the latter accepted;')
+    clause_4 = contract_settings.get('clause_4', 'Payment of the WORKER\'s wages shall be made semi-monthly not later than 20th day and 5th day of a calendar month following the 1st quincenna and 2nd quincenna, respectively. Anent the budgeting, accounting and auditing rules and regulations, timely payment of wages, is subject to WORKER\'s complete submission of the required Payroll\'s supporting documents on or before the cut-off date and time (every 16th and 1st working day of the following month at 12:00 noon); otherwise, processing of payment shall proceed upon receipt of complete supporting documents. USTP shall deduct or withhold any and all statutory obligations as may be required by law.')
+    clause_5 = contract_settings.get('clause_5', 'Subject to availability of funds as certified by the USTP\'s accountant, the WORKER may be paid for work rendered beyond the regular eight (8) hours of duty, after the submission of the following requirements, to wit: 5.1 Approved Request for Extension; 5.2 Accomplishment Report; and 5.3 Latest monthly DTR reflecting the rendered extension.')
+    clause_6 = contract_settings.get('clause_6', 'In case of Holiday/s which falls from Monday to Friday, the WORKER may be allowed to render "holiday duty" on the day the holiday falls, subject to the requirements enumerated in the preceding paragraph.')
+    clause_7 = contract_settings.get('clause_7', 'In the event when the maximum twenty-two (22) compensable days cannot be availed due to lesser number of working days in a particular month and/or holiday/s, the WORKER may be allowed to render extension of service or "holiday duty", respectively, on any of the Saturday(s) falling in the calendar month, subject to the requirements enumerated in item 5 of this contract.')
+    clause_8 = contract_settings.get('clause_8', 'The PARTIES understood that, this contract does not create an employer-employee relationship between them, that, the services rendered hereunder are not considered and will not be credited as government service, and that, the WORKER, shall not be entitled to ACA and PERA, and other emoluments due to an employee;')
+    clause_9 = contract_settings.get('clause_9', 'The WORKER shall maintain strict confidentiality during and after the effectivity of this Contract, any and all information not made available to the public, that are obtained in the course of performance of duties as Job Order worker in compliance with the Republic Act No. 10173 or Data Privacy Act and its Implementing Rules and Regulations (IRR);')
+    clause_10 = contract_settings.get('clause_10', 'This Contract may be terminated for violation of any provisions hereunder or for just/lawful cause, effective on the 30th day after due receipt of a written notice duly communicated by either party;')
+    clause_11 = contract_settings.get('clause_11', 'USTP reserves the right to pre-terminate this Contract immediately and without prior notice to the WORKER, upon Indorsement of the concerned immediate supervisor in any of the following grounds: 11.1 Unsatisfactory Performance of the WORKER. The concerned Immediate Supervisor shall attach the basis for the result of evaluation; 11.2 WORKER\'s conduct that is prejudicial to the interest of USTP.')
+    witness_whereof = contract_settings.get('witness_whereof', 'the parties hereunder affixed their signatures')
+    signing_location = contract_settings.get('signing_location', 'Magsaysay St., Poblacion, Claveria Misamis Oriental, Philippines')
+    acknowledgment_text = contract_settings.get('acknowledgment_text', 'I hereby acknowledge that I have received a copy of this Job Order Contract, read and understood the contents thereof, and agree to abide by the terms and conditions stipulated herein.')
+    header_logo_b64 = contract_settings.get('header_logo')
+
     name = text(personal['full_name'].upper())
     chancellor = chancellor_name(contract['chancellor'])
     nationality = text(personal.get('nationality', '')) + ', ' if personal.get('nationality') else ''
@@ -62,16 +86,28 @@ def render(data):
     entered = text(signed_date(contract['contract_date']))
     wage = Decimal(contract['daily_rate'])
     amount = text(f'{number_words(int(wage)).upper()} & {int(wage * 100) % 100:02d}/100 (PhP {wage:,.2f})')
-    clauses = json.loads((ASSETS / 'clauses.json').read_text())
-    html = f'''<p class="opening">Know All Men by These Presents:</p>
+
+    # Build clauses from settings
+    clauses = {
+        '4': clause_4,
+        '5': clause_5,
+        '6': clause_6,
+        '7': clause_7,
+        '8': clause_8,
+        '9': clause_9,
+        '10': clause_10,
+        '11': clause_11,
+    }
+
+    html = f'''<p class="opening">{text(contract_title)}</p>
     <p>This Job Order Contract is entered this <u>{entered}</u>, by and between:</p>
-    <p>The <b>UNIVERSITY OF SCIENCE AND TECHNOLOGY OF SOUTHERN PHILIPPINES-CLAVERIA</b>, a state university, existing and organized under the laws of the Republic of the Philippines, and created by virtue of Republic Act No. 10919, with principal address at Magsaysay Street, Poblacion, Claveria, Misamis Oriental, represented by its Chancellor, {text(chancellor)}, hereinafter referred to as the “USTP”;</p>
+    <p>The <b>{text(university_name)}</b>, a state university, existing and organized under the laws of the Republic of the Philippines, and created by virtue of {text(university_ra)}, with principal address at {text(university_address)}, represented by its Chancellor, {text(chancellor)}, hereinafter referred to as the "USTP";</p>
     <p class="center">-and-</p>
-    <p><b><u>{name}</u></b>, {nationality}of legal age, {text(personal['civil_status'])}, with residence address at <u>{text(personal['address'])}</u> hereinafter referred to as the <b>“WORKER”</b></p>
+    <p><b><u>{name}</u></b>, {nationality}of legal age, {text(personal['civil_status'])}, with residence address at <u>{text(personal['address'])}</u> hereinafter referred to as the <b>"WORKER"</b></p>
     <p class="center">Witnesseth:</p>
-    <p><b>WHEREAS,</b> in order to meet the organizational and staffing requirements vis-a-vis existing manpower complement, as well as to not impair the delivery of government service, USTP, engage the services of Job Order workers in accordance with the provisions of COA-DBM JC No. 2 s. 2020 and COA-DBM JC No. 2 s. 2022, as amended;</p>
-    <p><b>WHEREAS,</b> USTP need the services of Job Order workers, who shall perform work not performed by its regular personnel as learning service provider;</p>
-    <p><b>WHEREAS,</b> WORKER has signified intention to provide the services needed by USTP and enter into a Job Order contract, to which the latter accepted;</p>
+    <p><b>WHEREAS,</b> {text(whereas_1)}</p>
+    <p><b>WHEREAS,</b> {text(whereas_2)}</p>
+    <p><b>WHEREAS,</b> {text(whereas_3)}</p>
     <p><b>NOW THEREFORE,</b> for and in consideration of the foregoing premises, the parties hereby agree and covenant to be bound by the terms set forth in this Contract, to wit:</p>
     <div class="clause"><p>1. USTP engage the services of the WORKER, as <u>{text(data['position'])}</u> on a Job Order basis {period} <u>{text(long_date(data['start_date']))}</u> to <u>{text(long_date(data['end_date']))}</u> in the <u>{text(data['office'])}</u>.</p>
     <p>2. The WORKER shall render at least Forty (40) hours of service per week divided into eight (8) hours per day from 8:00 AM to 5:00 PM exclusive of one (1) hour lunch break, from Mondays to Fridays, and to perform the following duties and responsibilities:</p>'''
@@ -91,7 +127,7 @@ def render(data):
         html += f'<p>{n}. {text(parts[0].strip())}</p>'
         for part in parts[1:]: html += f'<p class="function">{text(part.strip())}</p>'
     html += '</div>'
-    signatures = f'''<div class="signatures"><p><i><b>IN WITNESS WHEREOF,</b></i> the parties hereunder affixed their signatures this <u>{entered}</u> at Magsaysay St., Poblacion, Claveria Misamis Oriental, Philippines.</p>
+    signatures = f'''<div class="signatures"><p><i><b>IN WITNESS WHEREOF,</b></i> {text(witness_whereof)} this <u>{entered}</u> at {text(signing_location)}.</p>
     <table><tr><td><i>For the</i><br/>USTP</td><td>WORKER</td></tr>
     <tr><td><br/><br/>{signature_name(chancellor)}<br/>USTP Claveria, Chancellor<br/>Valid ID/No.: {text(id_number(contract['chancellor_id']))}</td><td><br/><br/><b><u>{name}</u></b><br/>Valid ID/No.: {text(id_number(personal['valid_id']))}</td></tr>
     <tr><td><br/><br/><b><u>{text(contract['supervisor'])}</u></b><br/>{supervisor_title}</td><td><br/><br/>{signature_name(contract['hrmo_director'])}<br/>HRMO Director</td></tr>
@@ -122,8 +158,21 @@ def render(data):
         writer.end_page()
     writer.close()
     document = pymupdf.open(stream=buffer.getvalue(),filetype='pdf')
-    header = pymupdf.open(ASSETS / 'letterhead.pdf')
-    document[0].show_pdf_page(pymupdf.Rect(0,0,612,154),header,0)
+    
+    # Use custom logo if provided, otherwise use default letterhead
+    if header_logo_b64:
+        try:
+            logo_data = base64.b64decode(header_logo_b64)
+            # Insert image into header area (612x154)
+            document[0].insert_image(pymupdf.Rect(0, 0, 612, 154), stream=logo_data)
+        except:
+            # Fallback to default letterhead if custom logo fails
+            header = pymupdf.open(ASSETS / 'letterhead.pdf')
+            document[0].show_pdf_page(pymupdf.Rect(0,0,612,154),header,0)
+    else:
+        header = pymupdf.open(ASSETS / 'letterhead.pdf')
+        document[0].show_pdf_page(pymupdf.Rect(0,0,612,154),header,0)
+    
     for i in range(1,len(document)):
         document[i].insert_text((535,24),str(i+1),fontsize=10,fontname='tiro')
     acknowledgment = pymupdf.open(ASSETS / 'acknowledgment.pdf')

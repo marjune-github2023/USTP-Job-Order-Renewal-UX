@@ -136,7 +136,6 @@ export default function Portal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<"login" | "register">("login");
   const [applications, setApplications] = useState<Application[]>([]);
   const [selected, setSelected] = useState<Application | null>(null);
   const [filter, setFilter] = useState("all");
@@ -201,12 +200,9 @@ export default function Portal() {
       setBusy(false);
     }
   }
-  async function authenticate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget));
+  async function authenticateWithGoogle() {
     await run(async () => {
-      const result = await api<{ user: User }>(`/auth/${mode}`, "POST", data);
-      setUser(result.user);
+      window.location.href = "/api/auth/google";
     });
   }
   async function open(id: string) {
@@ -224,7 +220,7 @@ export default function Portal() {
       <header className="p-header">
         <a href="/" className="p-brand">
           <span className="p-mark">
-            <Building2 size={26} />
+            <img src="/ustp-logo.png" alt="USTP Logo" style={{ width: "26px", height: "26px" }} />
           </span>
           <span>
             <strong>USTP</strong>
@@ -318,7 +314,6 @@ export default function Portal() {
               setResetToken("");
               setUser(null);
               setSelected(null);
-              setMode("login");
             }}
           />
         ) : loading ? (
@@ -359,75 +354,23 @@ export default function Portal() {
               </div>
             </section>
             <section className="p-card p-auth">
+              <img 
+                src="/ustp-logo.png" 
+                alt="USTP Logo" 
+                style={{ maxWidth: "200px", maxHeight: "200px", marginBottom: "1rem" }}
+              />
               <p className="p-eyebrow">WELCOME TO THE RENEWAL PORTAL</p>
-              <h2>
-                {mode === "login"
-                  ? "Sign in to your account"
-                  : "Create an applicant account"}
-              </h2>
+              <h2>Sign in with your USTP Google account</h2>
               <p className="p-muted">
-                {mode === "login"
-                  ? "Applicants and HRMO staff sign in here."
-                  : "Use your own email address to track your renewals."}
+                Only @ustp.edu.ph email addresses are allowed.
               </p>
-              <form onSubmit={authenticate} key={mode}>
-                {mode === "register" && (
-                  <label>
-                    Full name
-                    <input
-                      name="name"
-                      autoComplete="name"
-                      required
-                      maxLength={120}
-                    />
-                  </label>
-                )}
-                <label>
-                  Email address
-                  <input
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    maxLength={254}
-                  />
-                </label>
-                <label>
-                  Password
-                  <input
-                    name="password"
-                    type="password"
-                    autoComplete={
-                      mode === "login" ? "current-password" : "new-password"
-                    }
-                    minLength={mode === "register" ? 12 : undefined}
-                    maxLength={128}
-                    required
-                  />
-                </label>
-                {mode === "register" && (
-                  <p className="p-muted p-small">Use at least 12 characters.</p>
-                )}
-                <button className="p-primary p-wide" disabled={busy}>
-                  {busy
-                    ? "Please wait…"
-                    : mode === "login"
-                      ? "Sign in"
-                      : "Create account"}
-                </button>
-              </form>
-              <p className="p-auth-switch">
-                {mode === "login" ? "New applicant?" : "Already registered?"}{" "}
-                <button
-                  disabled={busy}
-                  onClick={() => {
-                    setMode(mode === "login" ? "register" : "login");
-                    setError("");
-                  }}
-                >
-                  {mode === "login" ? "Create an account" : "Sign in"}
-                </button>
-              </p>
+              <button
+                className="p-primary p-wide"
+                disabled={busy}
+                onClick={() => void run(authenticateWithGoogle)}
+              >
+                {busy ? "Please wait…" : "Sign in with Google"}
+              </button>
             </section>
           </div>
         ) : user.role === "hrmo" && section === "database" ? (

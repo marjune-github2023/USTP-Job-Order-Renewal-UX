@@ -24,6 +24,12 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { hash, passwordHash, verify } from "../lib/security";
 import { HttpError, fail, field, id } from "../lib/http";
 import { pool, type PoolClient } from "@workspace/db";
+import {
+  googleAuthEndpoints,
+  googleAuthTokenRequest,
+  validateUstpEmail,
+  createOrUpdateUserFromGoogle,
+} from "../lib/google-auth";
 
 type User = {
   id: string;
@@ -91,6 +97,7 @@ async function session(
   res: Response,
   user: User,
   expectedPasswordHash?: string,
+  skipResponse?: boolean,
 ) {
   const value = randomBytes(32).toString("hex");
   const client = await pool.connect();
@@ -121,54 +128,114 @@ async function session(
     client.release();
   }
   res.cookie(cookieName, value, { ...cookieOptions, maxAge: 8 * 60 * 60_000 });
-  res.json({ user });
+  if (!skipResponse) res.json({ user });
 }
-portal.post("/auth/register", async (req, res) => {
-  const name = field(req.body?.name, "name", 120);
-  const email = field(req.body?.email, "email", 254).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    fail(400, "Enter a valid email address.");
-  const password = req.body?.password;
-  if (
-    typeof password !== "string" ||
-    password.length < 12 ||
-    password.length > 128
-  )
-    fail(400, "Use a password of 12–128 characters.");
-  const result = await pool.query(
-    "INSERT INTO portal_users (id,name,email,password_hash,role) VALUES ($1,$2,$3,$4,'applicant') ON CONFLICT (email) DO NOTHING RETURNING id,name,email,role",
-    [randomUUID(), name, email, await passwordHash(password)],
+// Google OAuth authentication
+portal.get("/auth/google", async (req, res) => {
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+
+  if (!redirectUri || !clientId) {
+    fail(503, "Google OAuth is not configured.");
+  }
+
+  const state = randomBytes(32).toString("hex");
+  const stateHash = hash(state);
+
+  await pool.query(
+    "INSERT INTO google_oauth_states (state_hash, expires_at) VALUES ($1, now() + interval '10 minutes')",
+    [stateHash],
   );
-  if (!result.rowCount) fail(409, "An account with this email already exists.");
-  await session(res, result.rows[0]);
+
+  const url = new URL(googleAuthEndpoints().authorize);
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("scope", "openid email profile");
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("state", state);
+  url.searchParams.set("hd", "ustp.edu.ph");
+
+  res.redirect(303, url.href);
 });
-portal.post("/auth/login", async (req, res) => {
-  const email = field(req.body?.email, "email", 254).toLowerCase();
-  const password = req.body?.password;
-  if (typeof password !== "string" || password.length > 128)
-    fail(400, "Invalid password.");
-  const result = await pool.query("SELECT * FROM portal_users WHERE email=$1", [
-    email,
-  ]);
-  const user = result.rows[0];
-  // Always perform the password derivation, including for unknown users.
-  const stored = user?.password_hash || `${"0".repeat(32)}:${"0".repeat(128)}`;
-  if (!(await verify(password, stored)) || !user)
-    fail(401, "Email or password is incorrect.");
-  if (token(req))
-    await pool.query("DELETE FROM portal_sessions WHERE token_hash=$1", [
-      hash(token(req)),
-    ]);
-  await session(
-    res,
-    {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    stored,
+
+portal.get("/auth/google/callback", async (req, res) => {
+  const state = req.query.state;
+  const code = req.query.code;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!redirectUri || !clientId || !clientSecret) {
+    fail(503, "Google OAuth is not configured.");
+  }
+
+  if (typeof state !== "string" || !/^[a-f0-9]{64}$/.test(state)) {
+    fail(400, "Invalid OAuth state.");
+  }
+
+  if (typeof code !== "string" || code.length > 4096) {
+    fail(400, "Invalid authorization code.");
+  }
+
+  const stateHash = hash(state);
+
+  // Validate and consume state
+  const claimed = await pool.query(
+    "DELETE FROM google_oauth_states WHERE state_hash=$1 AND expires_at>now() RETURNING *",
+    [stateHash],
   );
+
+  if (!claimed.rowCount) {
+    fail(400, "OAuth state expired or invalid.");
+  }
+
+  // Exchange code for tokens
+  const tokens = await googleAuthTokenRequest({
+    client_id: clientId,
+    client_secret: clientSecret,
+    code: code,
+    redirect_uri: redirectUri,
+    grant_type: "authorization_code",
+  });
+
+  // Fetch user info
+  const userResponse = await fetch(googleAuthEndpoints().userinfo, {
+    headers: { Authorization: `Bearer ${tokens.access_token}` },
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!userResponse.ok) {
+    fail(500, "Failed to fetch user information from Google.");
+  }
+
+  const profile = (await userResponse.json()) as {
+    email?: string;
+    name?: string;
+    verified_email?: boolean;
+    email_verified?: boolean;
+  };
+
+  if (
+    !profile.email ||
+    !profile.name ||
+    profile.email.length > 254 ||
+    !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(profile.email) ||
+    !(profile.verified_email === true || profile.email_verified === true)
+  ) {
+    fail(400, "Invalid or unverified Google account.");
+  }
+
+  validateUstpEmail(profile.email);
+
+  // Create or update user
+  const user = await createOrUpdateUserFromGoogle(profile.email, profile.name);
+
+  // Create session (skip JSON response so redirect works)
+  await session(res, user, undefined, true);
+
+  // Redirect to app
+  const appUrl = process.env.PUBLIC_APP_URL || "/";
+  res.redirect(303, appUrl);
 });
 portal.post("/auth/logout", async (req, res) => {
   await pool.query("DELETE FROM portal_sessions WHERE token_hash=$1", [
@@ -616,11 +683,33 @@ portal.post("/applications/:id/contract", (req, res) =>
     if (app.form_version === 2) {
       const settings = (
         await client.query(
-          "SELECT details,revision FROM portal_contract_settings WHERE singleton",
+          "SELECT * FROM portal_contract_settings WHERE singleton",
         )
       ).rows[0];
       app.contract_details = { ...app.contract_details, ...settings.details };
       settingsRevision = settings.revision;
+      // Add contract settings to app for renderer
+      (app as any).contract_settings = {
+        contract_title: settings.contract_title,
+        university_name: settings.university_name,
+        university_address: settings.university_address,
+        university_ra: settings.university_ra,
+        whereas_1: settings.whereas_1,
+        whereas_2: settings.whereas_2,
+        whereas_3: settings.whereas_3,
+        clause_4: settings.clause_4,
+        clause_5: settings.clause_5,
+        clause_6: settings.clause_6,
+        clause_7: settings.clause_7,
+        clause_8: settings.clause_8,
+        clause_9: settings.clause_9,
+        clause_10: settings.clause_10,
+        clause_11: settings.clause_11,
+        witness_whereof: settings.witness_whereof,
+        signing_location: settings.signing_location,
+        acknowledgment_text: settings.acknowledgment_text,
+        header_logo: settings.header_logo ? settings.header_logo.toString("base64") : null,
+      };
     }
     validate(() => validateContract(app));
     let pdf: Buffer;

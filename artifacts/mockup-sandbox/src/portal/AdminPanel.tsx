@@ -264,18 +264,6 @@ export default function AdminPanel({
           </section>
           <section className="p-card p-section">
             <h2>Users</h2>
-            {emailLocal && (
-              <p className="p-alert">
-                Preview mode: password reset messages go to the local test
-                inbox. No real emails are sent.
-              </p>
-            )}
-            {!emailReady && (
-              <p className="p-alert">
-                Email delivery is not configured. An administrator must
-                configure the sender before HRMO can email reset links.
-              </p>
-            )}
             <label>
               Search users
               <input
@@ -285,8 +273,8 @@ export default function AdminPanel({
               />
             </label>
             <p className="p-muted p-small">
-              Reset links expire after 30 minutes and work once. Password
-              changes sign out all existing sessions.
+              Google OAuth is enabled. Users sign in with their @ustp.edu.ph
+              Google accounts. HRMO can promote/demote user roles here.
             </p>
             <div className="p-table-wrap">
               <table>
@@ -295,7 +283,7 @@ export default function AdminPanel({
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
-                    <th>Account recovery</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -312,23 +300,21 @@ export default function AdminPanel({
                         <td>{u.role === "hrmo" ? "HRMO" : "Applicant"}</td>
                         <td>
                           <button
-                            disabled={busy || !emailReady}
-                            aria-label={`Send password reset email to ${u.email}`}
+                            disabled={busy}
+                            aria-label={`Change role for ${u.email}`}
                             onClick={() =>
                               void run(async () => {
-                                await request(
-                                  `/admin/users/${u.id}/reset-password`,
-                                  "POST",
-                                );
+                                await request(`/admin/users/${u.id}/role`, "PATCH", {
+                                  role: u.role === "hrmo" ? "applicant" : "hrmo",
+                                });
+                                await refresh();
                                 notice(
-                                  emailLocal
-                                    ? `Reset email for ${u.email} captured in the local test inbox.`
-                                    : `Password reset email sent to ${u.email}.`,
+                                  `${u.email} is now ${u.role === "hrmo" ? "an applicant" : "an HRMO"}.`,
                                 );
                               })
                             }
                           >
-                            Send password reset email
+                            {u.role === "hrmo" ? "Demote to applicant" : "Promote to HRMO"}
                           </button>
                         </td>
                       </tr>

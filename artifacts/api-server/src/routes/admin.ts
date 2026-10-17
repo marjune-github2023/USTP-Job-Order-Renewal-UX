@@ -1,7 +1,7 @@
 import database from "./database";
 import emailSettings from "./email-settings";
 import { validDate } from "../contract/validation";
-import { Router } from "express";
+import { Router, raw } from "express";
 import { randomBytes, randomUUID } from "node:crypto";
 import { pool } from "@workspace/db";
 import { fail, field, id } from "../lib/http";
@@ -108,6 +108,33 @@ admin.post("/users/:id/reset-password", async (req, res) => {
     client.release();
   }
 });
+admin.patch("/users/:id/role", async (req, res) => {
+  const newRole = req.body?.role;
+  if (newRole !== "applicant" && newRole !== "hrmo")
+    fail(400, "Role must be 'applicant' or 'hrmo'.");
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      "SELECT id,role FROM portal_users WHERE id=$1 FOR UPDATE",
+      [id(req.params.id)],
+    );
+    if (!result.rowCount) fail(404, "User not found.");
+    if (result.rows[0].id === res.locals.user.id)
+      fail(400, "You cannot change your own role.");
+    await client.query(
+      "UPDATE portal_users SET role=$1 WHERE id=$2",
+      [newRole, id(req.params.id)],
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+});
 admin.get("/offices", async (_req, res) => {
   res.json(
     (
@@ -138,13 +165,19 @@ admin.patch("/offices/:id", async (req, res) => {
   res.json(result.rows[0]);
 });
 admin.get("/contract-settings", async (_req, res) => {
-  res.json(
-    (
-      await pool.query(
-        "SELECT details,revision FROM portal_contract_settings WHERE singleton",
-      )
-    ).rows[0],
-  );
+  const settings = (
+    await pool.query(
+      "SELECT * FROM portal_contract_settings WHERE singleton",
+    )
+  ).rows[0];
+  // Convert logo to base64 if exists
+  const response = {
+    ...settings,
+    header_logo: settings.header_logo
+      ? settings.header_logo.toString("base64")
+      : null,
+  };
+  res.json(response);
 });
 admin.put("/contract-settings", async (req, res) => {
   const details: Record<string, string> = {};
@@ -162,12 +195,93 @@ admin.put("/contract-settings", async (req, res) => {
     );
   if (!validDate(details.contract_date))
     fail(400, "Enter a valid signing date.");
-  const result = await pool.query(
-    "UPDATE portal_contract_settings SET details=$1,revision=revision+1,updated_by=$2,updated_at=now() WHERE singleton AND revision=$3 RETURNING details,revision",
-    [JSON.stringify(details), res.locals.user.id, req.body?.revision],
-  );
+
+  // Handle new contract customization fields
+  const contractFields = [
+    "contract_title",
+    "university_name",
+    "university_address",
+    "university_ra",
+    "whereas_1",
+    "whereas_2",
+    "whereas_3",
+    "clause_4",
+    "clause_5",
+    "clause_6",
+    "clause_7",
+    "clause_8",
+    "clause_9",
+    "clause_10",
+    "clause_11",
+    "witness_whereof",
+    "signing_location",
+    "acknowledgment_text",
+  ];
+
+  const updateClauses: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
+
+  // Always update details
+  updateClauses.push(`details = $${paramIndex}`);
+  values.push(JSON.stringify(details));
+  paramIndex++;
+
+  // Add contract customization fields if provided
+  for (const field of contractFields) {
+    const value = req.body?.[field];
+    if (value !== undefined && value !== null) {
+      updateClauses.push(`${field} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+    }
+  }
+
+  values.push(res.locals.user.id);
+  values.push(req.body?.revision);
+
+  const setClauses = updateClauses.join(", ");
+  const query = `
+    UPDATE portal_contract_settings
+    SET ${setClauses}, revision = revision + 1, updated_by = $${paramIndex}, updated_at = now()
+    WHERE singleton AND revision = $${paramIndex + 1}
+    RETURNING *
+  `;
+
+  const result = await pool.query(query, values);
   if (!result.rowCount)
     fail(409, "Contract settings changed. Refresh before saving.");
   res.json(result.rows[0]);
+});
+admin.post(
+  "/contract-settings/logo",
+  raw({ type: "application/octet-stream", limit: "2mb" }),
+  async (req, res) => {
+    const data = req.body;
+    if (!Buffer.isBuffer(data) || !data.length)
+      fail(400, "Choose a logo file.");
+    const mime =
+      data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+        ? "image/png"
+        : data.subarray(0, 3).equals(Buffer.from([255, 216, 255]))
+          ? "image/jpeg"
+          : "";
+    if (!mime) fail(400, "Only PNG and JPEG images are accepted.");
+    const filename = req.get("X-File-Name") || "logo";
+    const result = await pool.query(
+      "UPDATE portal_contract_settings SET header_logo=$1,header_logo_name=$2,revision=revision+1,updated_by=$3,updated_at=now() WHERE singleton RETURNING revision",
+      [data, filename, res.locals.user.id],
+    );
+    res.json({ ok: true, revision: result.rows[0].revision });
+  },
+);
+admin.delete("/contract-settings/logo", async (req, res) => {
+  const result = await pool.query(
+    "UPDATE portal_contract_settings SET header_logo=NULL,header_logo_name=NULL,revision=revision+1,updated_by=$1,updated_at=now() WHERE singleton AND revision=$2 RETURNING revision",
+    [res.locals.user.id, req.body?.revision],
+  );
+  if (!result.rowCount)
+    fail(409, "Contract settings changed. Refresh before saving.");
+  res.json({ ok: true, revision: result.rows[0].revision });
 });
 export default admin;

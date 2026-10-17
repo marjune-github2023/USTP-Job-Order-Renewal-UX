@@ -35,6 +35,11 @@ services:
       EMAIL_SETTINGS_KEY: ${EMAIL_SETTINGS_KEY:?Set a permanent 64-hex EMAIL_SETTINGS_KEY in .env.docker}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ustp:${POSTGRES_PASSWORD}@db:5432/ustp}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      USTP_ADMIN_EMAIL: ${USTP_ADMIN_EMAIL:-ict.claveria@ustp.edu.ph}
     ports:
       - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"
     volumes:

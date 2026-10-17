@@ -22,6 +22,7 @@ ENV NODE_ENV=production PORT=8080 \
 WORKDIR /app
 COPY --from=build --chown=node:node /build/artifacts/api-server/dist ./api
 COPY --from=build --chown=node:node /build/artifacts/mockup-sandbox/dist ./ui
+COPY --from=build --chown=node:node /build/artifacts/mockup-sandbox/public ./ui/public
 COPY deploy/entrypoint.sh /usr/local/bin/portal-entrypoint
 RUN chmod 755 /usr/local/bin/portal-entrypoint \
     && mkdir -p /var/lib/ustp/backups \
