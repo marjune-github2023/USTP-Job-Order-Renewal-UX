@@ -143,7 +143,7 @@ export default function ContractSettings({
             {settings.header_logo ? (
               <div className="p-upload">
                 <img
-                  src={`data:image/png;base64,${settings.header_logo}`}
+                  src={`data:image/png;base64,${typeof settings.header_logo === 'string' ? settings.header_logo : ''}`}
                   alt="Current logo"
                   style={{ maxWidth: "200px", maxHeight: "100px" }}
                 />

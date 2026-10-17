@@ -708,7 +708,9 @@ portal.post("/applications/:id/contract", (req, res) =>
         witness_whereof: settings.witness_whereof,
         signing_location: settings.signing_location,
         acknowledgment_text: settings.acknowledgment_text,
-        header_logo: settings.header_logo ? settings.header_logo.toString("base64") : null,
+        header_logo: settings.header_logo && Buffer.isBuffer(settings.header_logo)
+          ? settings.header_logo.toString("base64")
+          : null,
       };
     }
     validate(() => validateContract(app));

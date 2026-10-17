@@ -173,7 +173,7 @@ admin.get("/contract-settings", async (_req, res) => {
   // Convert logo to base64 if exists
   const response = {
     ...settings,
-    header_logo: settings.header_logo
+    header_logo: settings.header_logo && Buffer.isBuffer(settings.header_logo)
       ? settings.header_logo.toString("base64")
       : null,
   };
