@@ -53,15 +53,30 @@ export default function ContractSettings({
     if (!logoFile) return;
     if (logoFile.size > 2 * 1024 * 1024)
       throw new Error("Logo must be under 2 MB.");
+    
+    // Convert file to base64
+    const reader = new FileReader();
+    const base64Promise = new Promise<string>((resolve, reject) => {
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:image/png;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(logoFile);
+    });
+    
+    const logo = await base64Promise;
+    
     const response = await fetch(`/api/admin/contract-settings/logo`, {
       method: "POST",
       credentials: "same-origin",
       headers: {
-        "Content-Type": "application/octet-stream",
+        "Content-Type": "application/json",
         "X-Requested-With": "USTP-Portal",
-        "X-File-Name": encodeURIComponent(logoFile.name),
       },
-      body: logoFile,
+      body: JSON.stringify({ logo, filename: logoFile.name }),
     });
     if (!response.ok) {
       const result = await response.json();

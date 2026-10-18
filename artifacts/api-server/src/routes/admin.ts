@@ -1,7 +1,7 @@
 import database from "./database";
 import emailSettings from "./email-settings";
 import { validDate } from "../contract/validation";
-import { Router, raw } from "express";
+import { Router, json } from "express";
 import { randomBytes, randomUUID } from "node:crypto";
 import { pool } from "@workspace/db";
 import { fail, field, id } from "../lib/http";
@@ -255,11 +255,19 @@ admin.put("/contract-settings", async (req, res) => {
 });
 admin.post(
   "/contract-settings/logo",
-  raw({ type: "application/octet-stream", limit: "2mb" }),
+  json({ limit: "2mb" }),
   async (req, res) => {
-    const data = req.body;
-    if (!Buffer.isBuffer(data) || !data.length)
-      fail(400, "Choose a logo file.");
+    const { logo, filename } = req.body;
+    if (!logo || !filename)
+      fail(400, "Logo and filename are required.");
+    let data: Buffer;
+    try {
+      data = Buffer.from(logo, "base64");
+    } catch {
+      fail(400, "Invalid logo data.");
+    }
+    if (!data.length)
+      fail(400, "Logo is empty.");
     const mime =
       data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
         ? "image/png"
@@ -267,7 +275,6 @@ admin.post(
           ? "image/jpeg"
           : "";
     if (!mime) fail(400, "Only PNG and JPEG images are accepted.");
-    const filename = req.get("X-File-Name") || "logo";
     const result = await pool.query(
       "UPDATE portal_contract_settings SET header_logo=$1,header_logo_name=$2,revision=revision+1,updated_by=$3,updated_at=now() WHERE singleton RETURNING revision",
       [data, filename, res.locals.user.id],
