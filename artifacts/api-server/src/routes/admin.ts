@@ -1,7 +1,7 @@
 import database from "./database";
 import emailSettings from "./email-settings";
 import { validDate } from "../contract/validation";
-import { Router, json } from "express";
+import { Router } from "express";
 import { randomBytes, randomUUID } from "node:crypto";
 import { pool } from "@workspace/db";
 import { fail, field, id } from "../lib/http";
@@ -255,7 +255,6 @@ admin.put("/contract-settings", async (req, res) => {
 });
 admin.post(
   "/contract-settings/logo",
-  json({ limit: "2mb" }),
   async (req, res) => {
     const { logo, filename } = req.body;
     if (!logo || !filename)

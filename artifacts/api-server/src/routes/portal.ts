@@ -77,7 +77,7 @@ portal.use((req, res, next) => {
   next();
 });
 portal.use(databaseGate);
-portal.use(json({ limit: "1mb" }));
+portal.use(json({ limit: "5mb" }));
 const attempts = new Map<string, { count: number; until: number }>();
 portal.use("/auth", (req, _res, next) => {
   if (req.method !== "POST") return next();
