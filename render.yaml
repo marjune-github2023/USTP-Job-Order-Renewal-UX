@@ -1,0 +1,71 @@
+# Render.com deployment blueprint for USTP Job Order Renewal Portal
+# Documentation: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: ustp-portal
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free  # Upgrade to starter/standard for production
+    region: oregon  # Choose region closest to your users
+    # For production, add a disk for persistent backup recovery copies:
+    # disk:
+    #   name: recovery
+    #   mountPath: /var/lib/ustp/backups
+    #   sizeGb: 10
+    envVars:
+      # Render automatically sets PORT environment variable (typically 10000)
+      # The Dockerfile health check now uses this variable or defaults to 8080
+
+      # Email encryption key - generate once and keep it consistent across deploys
+      # Use 'generateValue: true' for initial setup, then fix the value in dashboard
+      - key: EMAIL_SETTINGS_KEY
+        generateValue: true
+
+      # Public URL of the application - update with actual Render URL after deployment
+      - key: PUBLIC_APP_URL
+        value: https://ustp-portal.onrender.com
+
+      # Enable secure cookies for HTTPS
+      - key: COOKIE_SECURE
+        value: true
+
+      # Database connection - automatically set by Render
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ustp-db
+          property: connectionString
+
+      # Node environment
+      - key: NODE_ENV
+        value: production
+
+      # Python interpreter for PDF generation (installed in Dockerfile)
+      - key: PDF_PYTHON
+        value: /opt/pdf/bin/python
+
+      # Optional: Resend email configuration (set in Render dashboard after deployment)
+      - key: RESEND_API_KEY
+        value: ""
+      - key: EMAIL_FROM
+        value: ""
+
+      # Optional: Google OAuth (set in Render dashboard after deployment)
+      - key: GOOGLE_CLIENT_ID
+        value: ""
+      - key: GOOGLE_CLIENT_SECRET
+        value: ""
+      - key: GOOGLE_REDIRECT_URI
+        value: ""
+
+      # Admin email for initial configuration
+      - key: USTP_ADMIN_EMAIL
+        value: ict.claveria@ustp.edu.ph
+
+databases:
+  - name: ustp-db
+    databaseName: ustp
+    user: ustp
+    plan: free  # Upgrade for production
+    postgresVersion: 17
+    region: oregon  # Must match the web service region

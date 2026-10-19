@@ -16,7 +16,7 @@ RUN apt-get update \
     && python3 -m venv /opt/pdf \
     && /opt/pdf/bin/pip install --no-cache-dir pymupdf==1.28.2 \
     && rm -rf /var/lib/apt/lists/*
-ENV NODE_ENV=production PORT=8080 \
+ENV NODE_ENV=production \
     PORTAL_DIST_DIR=/app/ui PDF_PYTHON=/opt/pdf/bin/python \
     BACKUP_DIRECTORY=/var/lib/ustp/backups PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
@@ -29,7 +29,8 @@ RUN chmod 755 /usr/local/bin/portal-entrypoint \
     && chown node:node /var/lib/ustp/backups
 USER node
 EXPOSE 8080
+# Health check uses the PORT environment variable (set by Render or defaults to 8080)
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
-    CMD node -e 'fetch("http://127.0.0.1:"+process.env.PORT+"/api/healthz").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
+    CMD node -e 'const port=process.env.PORT||8080;fetch("http://127.0.0.1:"+port+"/api/healthz").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
 ENTRYPOINT ["portal-entrypoint"]
 CMD ["node", "--enable-source-maps", "/app/api/index.mjs"]
