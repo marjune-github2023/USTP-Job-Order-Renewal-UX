@@ -30,6 +30,7 @@ services:
       PGUSER: ustp
       PGDATABASE: ustp
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}
+      PORT: "8080"
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:8080}
       COOKIE_SECURE: ${COOKIE_SECURE:-}
       TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
